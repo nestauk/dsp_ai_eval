@@ -10,12 +10,11 @@ def extract_conclusion(answer: List[str]):
         return None
 
 
-# Regular expression to match theme headings
-# This regex looks for lines that start with a number followed by a period and a space, capturing the rest of the line as the heading.
-theme_heading_regex = re.compile(r"\*\*(.*?)\*\*")
-
-
 def extract_theme_headings(text):
+    # Regular expression to match theme headings
+    # This regex looks for lines that start with a number followed by a period and a space, capturing the rest of the line as the heading.
+    theme_heading_regex = re.compile(r"\*\*(.*?)\*\*")
+
     # Directly find all matches within the text
     matches = theme_heading_regex.findall(text)
     # # Strip each match of leading/trailing whitespace and return the list

@@ -25,31 +25,39 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 def create_new_topic_model(
     hdbscan_min_cluster_size=10,
     tfidf_min_df=2,
-    tfidf_max_df=0.75,
+    tfidf_max_df=0.9,
     tfidf_ngram_range=(1, 2),
     gpt_model="gpt-3.5-turbo",
     openai_api_key=OPENAI_API_KEY,
     seed=42,
+    calculate_probabilities=False,
 ):
     sentence_model = SentenceTransformer("all-miniLM-L6-v2")
 
     umap_model = UMAP(
-        n_neighbors=15, n_components=5, min_dist=0.0, metric="cosine", random_state=seed
+        n_neighbors=15,
+        n_components=50,
+        min_dist=0.0,
+        metric="cosine",
+        random_state=seed,
     )
 
     hdbscan_model = HDBSCAN(
         min_cluster_size=hdbscan_min_cluster_size,
+        min_samples=1,
         metric="euclidean",
-        cluster_selection_method="eom",
+        cluster_selection_method="leaf",
         prediction_data=True,
     )
 
     vectorizer_model = CountVectorizer(
         stop_words="english",
         min_df=tfidf_min_df,
-        max_df=tfidf_max_df,
-        ngram_range=(1, 2),
+        max_df=float(tfidf_max_df),
+        ngram_range=tfidf_ngram_range,
     )
+    logging.info(f"Min df: {tfidf_min_df}")
+    logging.info(f"Max df: {tfidf_max_df}")
 
     # KeyBERT
     keybert_model = KeyBERTInspired()
@@ -92,6 +100,7 @@ def create_new_topic_model(
         # Hyperparameters
         top_n_words=10,
         verbose=True,
+        calculate_probabilities=calculate_probabilities,
     )
 
     return topic_model
@@ -110,3 +119,38 @@ def create_df_for_viz(embeddings, topic_model, topics, docs, seed=42):
     df_vis["doc"] = docs
 
     return df_vis
+
+
+def get_top_docs_per_topic(abstracts_df, topics, docs, probs, n_docs=10):
+    df = pd.DataFrame(
+        {"DocID": range(len(docs)), "Topic": topics, "Probability": probs.max(axis=1)}
+    )
+
+    abstracts_df = pd.concat(
+        [abstracts_df.reset_index(drop=True), df.reset_index(drop=True)], axis=1
+    )
+
+    # For each topic, get the top 5 documents
+    top_docs_per_topic = {}
+    unique_topics = set(topics)
+    for topic in unique_topics:
+        if topic == -1:
+            continue  # Skip the outlier topic
+        top_docs = abstracts_df[
+            (abstracts_df["Topic"] == topic) & (abstracts_df["Probability"] == 1.0)
+        ]
+
+        if len(top_docs) < n_docs:
+            top_docs = (
+                abstracts_df[abstracts_df["Topic"] == topic]
+                .sort_values(by="Probability", ascending=False)
+                .head(n_docs)
+            )
+        else:
+            top_docs = top_docs.sort_values(by="total_cites", ascending=False).head(
+                n_docs
+            )
+
+        top_docs_per_topic[topic] = top_docs
+
+    return abstracts_df, top_docs_per_topic

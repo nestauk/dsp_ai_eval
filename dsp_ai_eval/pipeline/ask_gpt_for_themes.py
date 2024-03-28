@@ -18,10 +18,11 @@ import os
 from pathlib import Path
 import time
 
-GPT_MODEL = "gpt-3.5-turbo"
+GPT_MODEL = "gpt-4"
 TEMPS = [0, 0.25, 0.5, 1]
 RQ = "How does technology diffusion impact UK growth and productivity?"
-N_SAMPLES = 10
+SYSTEM_MESSAGE = "You are a helpful research assistant. Given a research question, you provide a summary of the key topics in academic research on that topic."
+N_SAMPLES = 20
 
 # output
 OUT_FILE = PROJECT_DIR / f"inputs/data/gpt/gpt_themes_repeats.jsonl"
@@ -48,13 +49,6 @@ if __name__ == "__main__":
         help="GPT model",
     )
 
-    # parser.add_argument(
-    #     "--temp",
-    #     default=TEMP,
-    #     type=float,
-    #     help="GPT temperature",
-    # )
-
     args = parser.parse_args()
     logging.info(args)
 
@@ -62,7 +56,7 @@ if __name__ == "__main__":
         [
             (
                 "system",
-                "You are a helpful research assistant. Given a research question, you provide a summary of the important themes in academic research on that topic.",
+                SYSTEM_MESSAGE,
             ),
             ("user", "{input}"),
         ]
@@ -111,6 +105,7 @@ if __name__ == "__main__":
                         "gpt_model": args.gpt_model,
                         "temperature": temp,
                         "research_question": RQ,
+                        "system_message": SYSTEM_MESSAGE,
                     }
                 )
                 outfile.write(json_record + "\n")
