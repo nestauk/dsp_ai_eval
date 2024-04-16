@@ -7,19 +7,30 @@ from bertopic.representation import (
 )
 from dotenv import load_dotenv
 from hdbscan import HDBSCAN
+import json
+from langchain_openai import ChatOpenAI
+from langchain.prompts import PromptTemplate
+from langchain.output_parsers import PydanticOutputParser
+from langchain_core.pydantic_v1 import BaseModel, Field
+import numpy as np
 import openai
 import os
 import pandas as pd
+import re
 from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import CountVectorizer
+import time
 from umap import UMAP
 
-from dsp_ai_eval import PROJECT_DIR, logging
+from dsp_ai_eval import PROJECT_DIR, logging, config
 from dsp_ai_eval.utils import utils
 
 load_dotenv()
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+
+GPT_MODEL = config["summarization_pipeline"]["gpt_model"]
+TEMP = config["summarization_pipeline"]["gpt_temp"]
 
 
 def create_new_topic_model(
@@ -29,10 +40,11 @@ def create_new_topic_model(
     tfidf_ngram_range=(1, 2),
     gpt_model="gpt-3.5-turbo",
     openai_api_key=OPENAI_API_KEY,
-    seed=42,
+    seed=config["seed"],
     calculate_probabilities=False,
+    embedding_model=config["embedding_model"],
 ):
-    sentence_model = SentenceTransformer("all-miniLM-L6-v2")
+    sentence_model = SentenceTransformer(embedding_model)
 
     umap_model = UMAP(
         n_neighbors=15,
@@ -154,3 +166,129 @@ def get_top_docs_per_topic(abstracts_df, topics, docs, probs, n_docs=10):
         top_docs_per_topic[topic] = top_docs
 
     return abstracts_df, top_docs_per_topic
+
+
+# Define the structure for the output we want to get back from GPT
+class NameDescription(BaseModel):
+    name: str = Field(description="Informative name for this group of documents")
+    description: str = Field(description="Description of this group of documents")
+
+
+def get_summaries(
+    topic_model,
+    top_docs_per_topic,
+    text_col="answer_cleaned",
+    openai_api_key=OPENAI_API_KEY,
+    model_name=GPT_MODEL,
+    temperature=TEMP,
+):
+    summary_info = topic_model.get_topic_info()
+    logging.info(summary_info)
+    # Filter out the noise cluster (on the assumption that it's not possible to get a helpful summary of this very sparse, noisy cluster)
+    summary_info = summary_info[summary_info["Topic"] != -1]
+
+    summaries = {}
+
+    for topic in summary_info["Topic"]:
+        text_list = top_docs_per_topic[topic][text_col].to_list()
+        texts = "\n".join(text_list)
+        logging.info(texts)
+        keyword_list = summary_info[summary_info["Topic"] == topic]["KeyBERT"].tolist()[
+            0
+        ]
+        keywords = ", ".join(keyword_list)
+
+        llm = ChatOpenAI(
+            openai_api_key=openai_api_key,
+            model_name=model_name,
+            temperature=temperature,
+        )
+
+        summary_prompt = """I have clustered some documents and pulled out the most representative documents for each cluster. Based on the documents given, and a list of keywords that are prominent in the cluster, please (a) give the cluster a name and (b) write a brief description of the cluster.
+        \n
+        DOCUMENTS:
+        {texts}
+        \n
+        KEYWORDS:
+        {keywords}
+        \n
+        {format_instructions}
+        """
+
+        # json_parser = JsonOutputParser()
+        parser = PydanticOutputParser(pydantic_object=NameDescription)
+
+        prompt = PromptTemplate(
+            template=summary_prompt,
+            input_variables=["texts", "keywords"],
+            partial_variables={"format_instructions": parser.get_format_instructions()},
+        )
+
+        llm_chain = prompt | llm
+
+        # Generate the summary
+        summary_result = llm_chain.invoke({"texts": texts, "keywords": keywords})
+        output = parser.invoke(summary_result)
+
+        summaries[topic] = {
+            "Name:": output.name,
+            "Description:": output.description,
+            "Docs": text_list,
+            "Keywords": keyword_list,
+            "Model": GPT_MODEL,
+            "Temperature": TEMP,
+            "Prompt": summary_prompt,
+        }
+        time.sleep(2)  # Add a delay - avoids the error "HTTP/1.1 429 Too Many Requests"
+
+    return summaries
+
+
+def to_snake_case(s: str) -> str:
+    # Replace all non-word characters (everything except letters and numbers) with an underscore
+    s = re.sub(r"\W+", "_", s)
+    # Convert to lowercase
+    s = s.lower()
+    # Remove leading and trailing underscores
+    s = s.strip("_")
+    return s
+
+
+def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Converts all column names to snake case and strips leading or trailing punctuation.
+
+    :param df: pandas DataFrame with any column names
+    :return: pandas DataFrame with cleaned column names
+    """
+    new_columns = {col: to_snake_case(col) for col in df.columns}
+    return df.rename(columns=new_columns)
+
+
+def clean_cluster_summaries(cluster_summaries):
+    # Convert the nested dictionary into a list of dictionaries
+    data = [v for _, v in cluster_summaries.items()]
+
+    # Create a DataFrame
+    df = pd.DataFrame(data).reset_index().rename(columns={"index": "topic"})
+
+    df = clean_column_names(df)
+
+    df = df.rename(
+        columns={
+            "docs": "representative_docs",
+            "name": "topic_name",
+            "description": "topic_description",
+            "keywords": "topic_keywords",
+        }
+    )
+
+    return df[
+        [
+            "topic",
+            "topic_name",
+            "topic_description",
+            "representative_docs",
+            "topic_keywords",
+        ]
+    ]

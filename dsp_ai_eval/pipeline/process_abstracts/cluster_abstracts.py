@@ -1,27 +1,24 @@
-import numpy as np
 import pandas as pd
-import pickle
 from sentence_transformers import SentenceTransformer
 
-from dsp_ai_eval import PROJECT_DIR, logging, config
+from dsp_ai_eval import PROJECT_DIR, logging, config, S3_BUCKET
 from dsp_ai_eval.utils.clustering_utils import create_new_topic_model
+from dsp_ai_eval.getters.scite import get_scite_df_w_embeddings
+from dsp_ai_eval.getters.utils import save_to_s3, copy_folder_to_s3
 
 EMBEDDING_MODEL = SentenceTransformer(config["embedding_model"])
-ABSTRACTS_EMBEDDINGS_INPATH = (
-    PROJECT_DIR / "inputs/data/embeddings/scite_embeddings.parquet"
-)
-TOPICS_OUTPATH = PROJECT_DIR / "outputs/data/bertopic_abstracts_model_topics.pkl"
-PROBS_OUTPATH = PROJECT_DIR / "outputs/data/bertopic_abstracts_model_probs.npy"
-MODEL_OUTPATH = (
-    PROJECT_DIR / "outputs/models/bertopic_abstracts_model"
-)  # This creates a folder, so you don't need to specify a file extension
-REPRESENTATIVE_DOCS_OUTPATH = (
-    PROJECT_DIR / "outputs/data/bertopic_abstracts_representative_docs.pkl"
-)
+
+TOPICS_OUTPATH = config["abstracts_pipeline"]["path_topics"]
+PROBS_OUTPATH = config["abstracts_pipeline"]["path_probs"]
+MODEL_OUTPATH = config["abstracts_pipeline"]["dir_topic_model"]
+REPRESENTATIVE_DOCS_OUTPATH = config["abstracts_pipeline"]["path_repr_docs"]
 SEED = config["seed"]
+HDBSCAN_MIN_CLUSTER_SIZE = config["abstracts_pipeline"]["hdsbscan_min_cluster_size"]
+TFIDF_NGRAM_MIN = config["abstracts_pipeline"]["tfidf_ngram_min"]
+TFIDF_NGRAM_MAX = config["abstracts_pipeline"]["tfidf_ngram_max"]
 
 if __name__ == "__main__":
-    scite_abstracts = pd.read_parquet(ABSTRACTS_EMBEDDINGS_INPATH)
+    scite_abstracts = get_scite_df_w_embeddings()
 
     # Prepare docs and embeddings to input into BERTopic
     docs = scite_abstracts["title_abstract"].to_list()
@@ -30,8 +27,8 @@ if __name__ == "__main__":
     # Initialise model with desired hyperparameters
     logging.info("Initialising BERTopic model...")
     topic_model = create_new_topic_model(
-        hdbscan_min_cluster_size=30,
-        tfidf_ngram_range=(1, 3),
+        hdbscan_min_cluster_size=HDBSCAN_MIN_CLUSTER_SIZE,
+        tfidf_ngram_range=(TFIDF_NGRAM_MIN, TFIDF_NGRAM_MAX),
         seed=SEED,
         calculate_probabilities=True,
     )
@@ -42,22 +39,21 @@ if __name__ == "__main__":
 
     # Save the topics and probability arrays
     logging.info("Saving topics and probabilities...")
-    with open(TOPICS_OUTPATH, "wb") as f:
-        pickle.dump(topics, f)
+    save_to_s3(S3_BUCKET, topics, TOPICS_OUTPATH)
 
-    np.save(PROBS_OUTPATH, probs)
+    save_to_s3(S3_BUCKET, probs, PROBS_OUTPATH)
 
     # Save the model itself
     logging.info("Saving topic model...")
     topic_model.save(
-        MODEL_OUTPATH,
+        PROJECT_DIR / MODEL_OUTPATH,
         serialization="pytorch",
         save_ctfidf=True,
         save_embedding_model=EMBEDDING_MODEL,
     )
+    copy_folder_to_s3(PROJECT_DIR / MODEL_OUTPATH, S3_BUCKET, MODEL_OUTPATH)
 
     # Save the representative documents
     logging.info("Saving representative documents...")
     representative_docs = topic_model.get_representative_docs()
-    with open(REPRESENTATIVE_DOCS_OUTPATH, "wb") as f:
-        pickle.dump(representative_docs, f)
+    save_to_s3(S3_BUCKET, representative_docs, REPRESENTATIVE_DOCS_OUTPATH)

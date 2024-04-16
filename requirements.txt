@@ -1,6 +1,7 @@
 altair
 bertopic
 bertopic[visualization]
+boto3
 langchain
 langchain_openai
 langchain_text_splitters
@@ -16,5 +17,7 @@ python-dotenv
 scikit-learn
 sentence_transformers
 spacy
+srsly
+s3fs==2023.12.2
 tiktoken
 pyarrow
