@@ -66,6 +66,8 @@ if __name__ == "__main__":
         outfile_path = OUT_FILE
         n_samples = args.n_samples
     else:
+        # In test mode (the default), the script queries the API just twice and saves to a separate
+        # file to avoid overwriting the main file.
         logging.info("running in test mode")
         outfile_path = PROJECT_DIR / "inputs/data/gpt/gpt_themes_repeats_test.jsonl"
         n_samples = 2
@@ -80,6 +82,7 @@ if __name__ == "__main__":
         ]
     )
 
+    # Iterate over the temperatures and collect an even number of samples for each one
     for temp in TEMPS:
         llm = ChatOpenAI(
             openai_api_key=OPENAI_API_KEY, model_name=args.gpt_model, temperature=temp
@@ -89,7 +92,8 @@ if __name__ == "__main__":
 
         chain = themes_prompt | llm | output_parser
 
-        # Determine the file's opening mode ('a' for append, 'w' for write)
+        # Determine the file's opening mode ('a' for append, 'w' for write).
+        # Append to the file if it already exists, otherwise create a new file.
         file_mode = "a" if outfile_path.exists() else "w"
 
         # Initialize the starting index
