@@ -4,9 +4,12 @@
 
 We will cluster research papers based on their abstracts, and then summarize the most representative papers from each cluster. This will give us an idea of the main themes in the research landscape, and the most important papers in each theme.
 
-## Set up
+## Usage
 
-Download papers from ... and store them in ... directory.
+1. Navigate to this subdirectory.
+2. Run `python run_abstracts_pipeline.py` to run all the steps in sequence.
+
+Note that the final step, `plot_abstract_clusters.py`, saves plots **locally** rather than to s3, so check `outputs/figures/` for the outputs from this script.
 
 ## Pipeline steps
 
