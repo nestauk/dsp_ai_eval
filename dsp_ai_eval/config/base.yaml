@@ -15,7 +15,7 @@ gpt_themes_pipeline:
   path_repr_docs: outputs/data/bertopic_gpt_themes_representative_docs.pkl
   path_summaries: outputs/data/gpt_theme_cluster_summaries.json
   path_summaries_cleaned: outputs/data/gpt_theme_cluster_summaries_cleaned.csv
-  cluster_colours: paired
+  cluster_colours: tableau20
 
 abstracts_pipeline:
   path_scite_core_references: inputs/data/scite/How_does_technology_diffusion_impact_UK_growth_and_productivity_3F.csv
