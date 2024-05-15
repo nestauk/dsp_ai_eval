@@ -15,13 +15,15 @@ research_daps/
 *.bbl
 *.blg
 
+# Figures
+*.png
+*.html
+*.svg
+
 # Metaflow
 .metaflow
 metaflow.s3.*
 .run_id
-
-# Notebooks (use jupytext instead!)
-*.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -110,6 +112,7 @@ target/
 !/outputs/data/*.md
 /outputs/models/*
 !/outputs/models/*.md
+*.csv
 
 # Mac OS-specific storage files
 .DS_Store
