@@ -1,4 +1,5 @@
 import re
+import pandas as pd
 
 
 def clean_abstract(text):
@@ -18,10 +19,16 @@ def clean_abstract(text):
     abstract_regex = r"^[Aa]bstract[,.!?;:\-]?"
     output = re.sub(abstract_regex, "", output)
 
+    # Remove html tags
+    tags_regex = r"<[^>]+>"
+    output = re.sub(tags_regex, "", output)
+
     return output
 
 
-def clean_title_and_abstract(df, abstract_col="abstract_clean", title_col="title"):
+def clean_title_and_abstract(
+    df: pd.DataFrame, abstract_col="abstract_clean", title_col="title"
+):
     df["title_abstract"] = df.apply(
         lambda row: row[title_col]
         + (". " if not row[title_col].endswith(".") else " ")
