@@ -13,21 +13,29 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 import os
-from pathlib import Path
 import time
 
-from dsp_ai_eval import PROJECT_DIR, logging, S3_BUCKET
+from dsp_ai_eval import PROJECT_DIR, logging, S3_BUCKET, config
 from dsp_ai_eval.getters.utils import upload_file_to_s3
+
+from langfuse.callback import CallbackHandler
+
+langfuse_handler = CallbackHandler(
+    user_id="ohid-maintaining-weightloss",
+    session_id=f"{date.today().isoformat()}",
+    trace_name="gpt-themes-repeats",
+)
 
 GPT_MODEL = "gpt-3.5-turbo"
 TEMPS = [0, 0.25, 0.5, 1]
-RQ = "How does technology diffusion impact UK growth and productivity?"
+RQ = config["gpt_themes_pipeline"]["RQ"]
 SYSTEM_MESSAGE = "You are a helpful research assistant. Given a research question, you provide a summary of the key topics in academic research on that topic."
 N_SAMPLES = 50
 
 # output
 FILENAME = "inputs/data/gpt/gpt_themes_repeats.jsonl"
 OUT_FILE = PROJECT_DIR / FILENAME
+rq_prefix: str = config["rq_prefix"]
 
 load_dotenv()
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
@@ -71,6 +79,9 @@ if __name__ == "__main__":
         logging.info("running in test mode")
         outfile_path = PROJECT_DIR / "inputs/data/gpt/gpt_themes_repeats_test.jsonl"
         n_samples = 2
+
+    if not outfile_path.parent.exists():
+        outfile_path.parent.mkdir(parents=True)
 
     themes_prompt = ChatPromptTemplate.from_messages(
         [
@@ -116,7 +127,9 @@ if __name__ == "__main__":
 
         with open(outfile_path, file_mode) as outfile:
             for i in range(start_index, start_index + n_samples):
-                answer = chain.invoke({"input": RQ})
+                answer = chain.invoke(
+                    {"input": RQ}, config={"callbacks": [langfuse_handler]}
+                )
                 answer = answer.split("\n")
                 answer_clean = [line for line in answer if line != ""]
                 datetime_str = datetime.now().isoformat()
@@ -141,4 +154,4 @@ if __name__ == "__main__":
 
     # copy the file to s3
     if args.production:
-        upload_file_to_s3(outfile_path, S3_BUCKET, FILENAME)
+        upload_file_to_s3(outfile_path, S3_BUCKET, f"{rq_prefix}/{FILENAME}")
