@@ -1,6 +1,3 @@
-import os
-from sentence_transformers import SentenceTransformer
-
 from dsp_ai_eval import logging, config, S3_BUCKET
 from dsp_ai_eval.utils.clustering_utils import get_top_docs_per_topic, get_summaries
 from dsp_ai_eval.getters.gpt import (
@@ -12,13 +9,8 @@ from dsp_ai_eval.getters.gpt import (
 )
 from dsp_ai_eval.getters.utils import save_to_s3
 
-embedding_model = SentenceTransformer(config["embedding_model"])
-
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-GPT_MODEL = config["summarization_pipeline"]["gpt_model"]
-TEMP = config["summarization_pipeline"]["gpt_temp"]
-
 SUMMARIES_OUTPATH = config["gpt_themes_pipeline"]["path_summaries"]
+rq_prefix: str = config["rq_prefix"]
 
 if __name__ == "__main__":
     answers_long = get_gpt_themes_embeddings()
@@ -31,12 +23,12 @@ if __name__ == "__main__":
     topics = get_topics()
     logging.info(f"topics: {len(answers_long)}")
     probs = get_probs()
-    representative_docs = get_representative_docs()
+    # representative_docs = get_representative_docs() # Not used
 
     answers_long, top_docs_per_topic = get_top_docs_per_topic(
         answers_long, topics, docs, probs, 5
     )
 
-    summaries = get_summaries(topic_model, top_docs_per_topic)
+    summaries = get_summaries(topic_model, top_docs_per_topic, trace_name="gpt_summary")
 
-    save_to_s3(S3_BUCKET, summaries, SUMMARIES_OUTPATH)
+    save_to_s3(S3_BUCKET, summaries, f"{rq_prefix}/{SUMMARIES_OUTPATH}")

@@ -1,17 +1,14 @@
-import numpy as np
 import pandas as pd
 import re
-from typing import Union
 
 from dsp_ai_eval import PROJECT_DIR, logging, config, S3_BUCKET
-from dsp_ai_eval.utils import utils
 from dsp_ai_eval.utils.gpt_summary_utils import extract_theme_headings
 from dsp_ai_eval.getters.gpt import get_gpt_themes
 from dsp_ai_eval.getters.utils import upload_file_to_s3
 
 SEED = config["seed"]
 
-GPT_THEMES_OUTPATH = "inputs/data/gpt/gpt_themes_repeats_cleaned.csv"
+GPT_THEMES_OUTPATH = config["gpt_themes_pipeline"]["path_cleaned_data"]
 
 N_SAMPLES_PER_GROUP = 100
 
@@ -56,4 +53,7 @@ if __name__ == "__main__":
     answers_long.to_csv(PROJECT_DIR / GPT_THEMES_OUTPATH, index=False)
 
     # copy to s3
-    upload_file_to_s3(PROJECT_DIR / GPT_THEMES_OUTPATH, S3_BUCKET, GPT_THEMES_OUTPATH)
+    rq_prefix: str = config["rq_prefix"]
+    upload_file_to_s3(
+        PROJECT_DIR / GPT_THEMES_OUTPATH, S3_BUCKET, f"{rq_prefix}/{GPT_THEMES_OUTPATH}"
+    )
