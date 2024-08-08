@@ -5,32 +5,54 @@ from bertopic.representation import (
     OpenAI,
     PartOfSpeech,
 )
-from dotenv import load_dotenv
 from hdbscan import HDBSCAN
-import json
+from umap import UMAP
+from sklearn.feature_extraction.text import CountVectorizer
+
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from langchain_core.pydantic_v1 import BaseModel, Field
-import numpy as np
-import openai
-import os
-import pandas as pd
+from langfuse.callback import CallbackHandler
+
 import re
-from sentence_transformers import SentenceTransformer
-from sklearn.feature_extraction.text import CountVectorizer
-import time
-from umap import UMAP
+import pandas as pd
+from tqdm import tqdm
+from time import sleep
+from datetime import date
+from typing import List
 
-from dsp_ai_eval import PROJECT_DIR, logging, config
-from dsp_ai_eval.utils import utils
-
-load_dotenv()
-
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+from dsp_ai_eval import logger, config
 
 GPT_MODEL = config["summarization_pipeline"]["gpt_model"]
-TEMP = config["summarization_pipeline"]["gpt_temp"]
+
+
+def get_openai_model(
+    model=config["summarization_pipeline"]["gpt_model"],
+) -> OpenAI:
+    from langfuse.openai import openai
+
+    client = openai.OpenAI()
+    prompt = """
+    I have a topic that contains the following documents:
+    [DOCUMENTS]
+    The topic is described by the following keywords: [KEYWORDS]
+
+    Based on the information above, extract a short but highly descriptive topic label of at most 5 words. Make sure it is in the following format:
+    topic: <topic label>
+    """
+    openai_model = OpenAI(
+        client, model=model, exponential_backoff=True, chat=True, prompt=prompt
+    )
+    return openai_model
+
+
+def get_anthropic_model(
+    model=config["summarization_pipeline"]["gpt_model"],
+):
+    from bertopic.representation import LangChain
+
+    pass
 
 
 def create_new_topic_model(
@@ -38,13 +60,11 @@ def create_new_topic_model(
     tfidf_min_df=2,
     tfidf_max_df=0.9,
     tfidf_ngram_range=(1, 2),
-    gpt_model="gpt-3.5-turbo",
-    openai_api_key=OPENAI_API_KEY,
     seed=config["seed"],
     calculate_probabilities=False,
     embedding_model=config["embedding_model"],
 ):
-    sentence_model = SentenceTransformer(embedding_model)
+    logger.info("Initialising BERTopic model...")
 
     umap_model = UMAP(
         n_neighbors=15,
@@ -68,8 +88,8 @@ def create_new_topic_model(
         max_df=float(tfidf_max_df),
         ngram_range=tfidf_ngram_range,
     )
-    logging.info(f"Min df: {tfidf_min_df}")
-    logging.info(f"Max df: {tfidf_max_df}")
+    logger.info(f"Min df: {tfidf_min_df}")
+    logger.info(f"Max df: {tfidf_max_df}")
 
     # KeyBERT
     keybert_model = KeyBERTInspired()
@@ -81,18 +101,7 @@ def create_new_topic_model(
     mmr_model = MaximalMarginalRelevance(diversity=0.3)
 
     # GPT-3.5
-    client = openai.OpenAI(api_key=openai_api_key)
-    prompt = """
-    I have a topic that contains the following documents:
-    [DOCUMENTS]
-    The topic is described by the following keywords: [KEYWORDS]
-
-    Based on the information above, extract a short but highly descriptive topic label of at most 5 words. Make sure it is in the following format:
-    topic: <topic label>
-    """
-    openai_model = OpenAI(
-        client, model=gpt_model, exponential_backoff=True, chat=True, prompt=prompt
-    )
+    openai_model = get_openai_model()
 
     # All representation models
     representation_model = {
@@ -104,7 +113,7 @@ def create_new_topic_model(
 
     topic_model = BERTopic(
         # Pipeline models
-        embedding_model=sentence_model,
+        embedding_model=embedding_model,
         umap_model=umap_model,
         hdbscan_model=hdbscan_model,
         vectorizer_model=vectorizer_model,
@@ -118,8 +127,10 @@ def create_new_topic_model(
     return topic_model
 
 
-def create_df_for_viz(embeddings, topic_model, topics, docs, seed=42):
-    umap_2d = UMAP(random_state=seed)  # UMAP red
+def create_df_for_viz(
+    embeddings, topic_model: BERTopic, topics, docs, seed=42, n_components=2
+):
+    umap_2d = UMAP(random_state=seed, n_components=n_components)
     embeddings_2d = umap_2d.fit_transform(embeddings)
 
     topic_lookup = topic_model.get_topic_info()[["Topic", "Name"]]
@@ -133,9 +144,15 @@ def create_df_for_viz(embeddings, topic_model, topics, docs, seed=42):
     return df_vis
 
 
-def get_top_docs_per_topic(abstracts_df, topics, docs, probs, n_docs=10):
+def get_top_docs_per_topic(
+    abstracts_df: pd.DataFrame, topics: List[str], docs, probs, n_docs=10, axis=1
+):
     df = pd.DataFrame(
-        {"DocID": range(len(docs)), "Topic": topics, "Probability": probs.max(axis=1)}
+        {
+            "DocID": range(len(docs)),
+            "Topic": topics,
+            "Probability": probs.max(axis=axis),
+        }
     )
 
     abstracts_df = pd.concat(
@@ -148,7 +165,7 @@ def get_top_docs_per_topic(abstracts_df, topics, docs, probs, n_docs=10):
     for topic in unique_topics:
         if topic == -1:
             continue  # Skip the outlier topic
-        top_docs = abstracts_df[
+        top_docs: pd.DataFrame = abstracts_df[
             (abstracts_df["Topic"] == topic) & (abstracts_df["Probability"] == 1.0)
         ]
 
@@ -159,9 +176,12 @@ def get_top_docs_per_topic(abstracts_df, topics, docs, probs, n_docs=10):
                 .head(n_docs)
             )
         else:
-            top_docs = top_docs.sort_values(by="total_cites", ascending=False).head(
-                n_docs
+            cite_col = (
+                "cited_by_count"
+                if "total_cites" not in abstracts_df.columns
+                else "total_cites"
             )
+            top_docs = top_docs.sort_values(by=cite_col, ascending=False).head(n_docs)
 
         top_docs_per_topic[topic] = top_docs
 
@@ -175,31 +195,28 @@ class NameDescription(BaseModel):
 
 
 def get_summaries(
-    topic_model,
+    topic_model: BERTopic,
     top_docs_per_topic,
+    trace_name: str,
     text_col="answer_cleaned",
-    openai_api_key=OPENAI_API_KEY,
     model_name=GPT_MODEL,
-    temperature=TEMP,
+    temperature=config["summarization_pipeline"]["gpt_temp"],
 ):
     summary_info = topic_model.get_topic_info()
-    logging.info(summary_info)
     # Filter out the noise cluster (on the assumption that it's not possible to get a helpful summary of this very sparse, noisy cluster)
     summary_info = summary_info[summary_info["Topic"] != -1]
 
     summaries = {}
 
-    for topic in summary_info["Topic"]:
+    for topic in tqdm(summary_info["Topic"]):
         text_list = top_docs_per_topic[topic][text_col].to_list()
         texts = "\n".join(text_list)
-        logging.info(texts)
         keyword_list = summary_info[summary_info["Topic"] == topic]["KeyBERT"].tolist()[
             0
         ]
         keywords = ", ".join(keyword_list)
 
         llm = ChatOpenAI(
-            openai_api_key=openai_api_key,
             model_name=model_name,
             temperature=temperature,
         )
@@ -226,9 +243,18 @@ def get_summaries(
 
         llm_chain = prompt | llm
 
+        langfuse_handler = CallbackHandler(
+            user_id="ohid-maintaining-weightloss",
+            session_id=f"{date.today().isoformat()}",
+            trace_name=trace_name,
+        )
+
         # Generate the summary
-        summary_result = llm_chain.invoke({"texts": texts, "keywords": keywords})
-        output = parser.invoke(summary_result)
+        output = (llm_chain | parser).invoke(
+            {"texts": texts, "keywords": keywords},
+            config={"callbacks": [langfuse_handler]},
+        )
+        # output = parser.invoke(summary_result, config={"callbacks": [langfuse_handler]})
 
         summaries[topic] = {
             "Name:": output.name,
@@ -236,10 +262,10 @@ def get_summaries(
             "Docs": text_list,
             "Keywords": keyword_list,
             "Model": GPT_MODEL,
-            "Temperature": TEMP,
+            "Temperature": temperature,
             "Prompt": summary_prompt,
         }
-        time.sleep(2)  # Add a delay - avoids the error "HTTP/1.1 429 Too Many Requests"
+        sleep(2)  # Add a delay - avoids the error "HTTP/1.1 429 Too Many Requests"
 
     return summaries
 
@@ -292,3 +318,75 @@ def clean_cluster_summaries(cluster_summaries):
             "topic_keywords",
         ]
     ]
+
+
+def reclustering_model_from_topics(
+    zeroshot_topic_list: List[str],
+    zeroshot_min_similarity: float = config["oa_reclustering_pipeline"][
+        "zeroshot_min_similarity"
+    ],
+    embedding_model=config["embedding_model"],
+    calculate_probabilities=False,
+    seed=config["seed"],
+    hdbscan_min_cluster_size=5,
+    tfidf_min_df=2,
+    tfidf_max_df=0.9,
+    tfidf_ngram_range=(1, 2),
+    min_topic_size=config["oa_reclustering_pipeline"]["min_topic_size"],
+):
+
+    umap_model = UMAP(
+        n_neighbors=3,
+        n_components=10,
+        min_dist=0.0,
+        metric="cosine",
+        random_state=seed,
+    )
+
+    hdbscan_model = HDBSCAN(
+        min_cluster_size=hdbscan_min_cluster_size,
+        min_samples=1,
+        metric="euclidean",
+        cluster_selection_method="leaf",
+        prediction_data=True,
+    )
+
+    vectorizer_model = CountVectorizer(
+        stop_words="english",
+        min_df=tfidf_min_df,
+        max_df=float(tfidf_max_df),
+        ngram_range=tfidf_ngram_range,
+    )
+
+    # KeyBERT
+    keybert_model = KeyBERTInspired()
+
+    # Part-of-Speech
+    pos_model = PartOfSpeech("en_core_web_sm")
+
+    # GPT-3.5
+    openai_model = get_openai_model()
+
+    # All representation models
+    representation_model = {
+        "KeyBERT": keybert_model,
+        "OpenAI": openai_model,  # Uncomment if you will use OpenAI
+        "POS": pos_model,
+    }
+
+    topic_model = BERTopic(
+        embedding_model=embedding_model,
+        umap_model=umap_model,
+        hdbscan_model=hdbscan_model,
+        vectorizer_model=vectorizer_model,
+        representation_model=representation_model,
+        zeroshot_topic_list=zeroshot_topic_list,
+        zeroshot_min_similarity=zeroshot_min_similarity,
+        calculate_probabilities=calculate_probabilities,
+        # Hyperparameters
+        min_topic_size=min_topic_size,
+        top_n_words=3,
+        verbose=False,
+    )
+
+    return topic_model
