@@ -3,19 +3,23 @@ import pandas as pd
 
 from nesta_ds_utils.viz.altair import saving as viz_save
 
-from dsp_ai_eval import PROJECT_DIR, logging, config
+from dsp_ai_eval import PROJECT_DIR, S3_BUCKET, logger, config
 from dsp_ai_eval.utils.clustering_utils import create_df_for_viz
-from dsp_ai_eval.getters.scite import (
-    get_scite_df_w_embeddings,
+from dsp_ai_eval.getters.utils import save_to_s3
+from dsp_ai_eval.getters.openalex import (
+    get_openalex_df_w_embeddings,
     get_topic_model,
     get_topics,
     get_cluster_summaries_clean,
 )
 
+import typer
+from typing import Any, Dict, Optional
+from typing_extensions import Annotated
+from pathlib import Path
+
 # Increase the maximum number of rows Altair will process
 alt.data_transformers.disable_max_rows()
-
-SEED = config["seed"]
 
 
 def map_citations_to_size(citations: int, quantile_values: dict) -> str:
@@ -50,6 +54,8 @@ def create_chart(
     scale_by_citations: bool = False,
     save: bool = True,
     filename_suffix: str = "",
+    add_topic_legend: bool = False,
+    plot_na=False,
 ) -> None:
     """
     Generates and optionally saves a visualization chart based on citation data.
@@ -64,15 +70,18 @@ def create_chart(
     Returns:
         None: The function generates and displays a chart, and optionally saves it.
     """
+    if not plot_na:
+        df_vis = df_vis.query("topic != -1")
+
     # Create quantile bins for scaling the point size in the chart
     quantile_values = df_vis["total_cites"].quantile([0.25, 0.5, 0.75])
-    logging.info(f"quantiles: {quantile_values}")
+    logger.info(f"quantiles: {quantile_values}")
 
     df_vis["point_size"] = df_vis["total_cites"].apply(
         lambda x: map_citations_to_size(x, quantile_values)
     )
 
-    logging.info(df_vis["point_size"].value_counts(dropna=False))
+    logger.info(df_vis["point_size"].value_counts(dropna=False))
 
     # Conditional field calculation based on `scale_by_citations` flag
     if scale_by_citations:
@@ -112,6 +121,20 @@ def create_chart(
         alt.datum.topic_name == "NA", alt.value(0.25), alt.value(0.6)
     )
 
+    if add_topic_legend:
+        color_args = (
+            alt.Color("topic_name:N")
+            .legend(orient="top-left", labelLimit=0)
+            .title("Topics by Colour")
+            .scale(scheme=config["oa_abstracts_pipeline"]["cluster_colours"])
+        )
+    else:
+        color_args = (
+            alt.Color("topic_name:N")
+            .legend(None)
+            .scale(scheme=config["oa_abstracts_pipeline"]["cluster_colours"])
+        )
+
     base = chart.encode(
         x=alt.X(
             "x:Q", axis=alt.Axis(ticks=False, labels=False, title=None, grid=False)
@@ -120,9 +143,7 @@ def create_chart(
             "y:Q", axis=alt.Axis(ticks=False, labels=False, title=None, grid=False)
         ),
         size=size_encode,
-        color=alt.Color("topic_name:N", legend=None).scale(
-            scheme=config["abstracts_pipeline"]["cluster_colours"]
-        ),
+        color=color_args,
         opacity=opacity_condition,
         tooltip=tooltip_fields,
     ).mark_circle()
@@ -131,21 +152,26 @@ def create_chart(
 
     # Save the chart
     if save:
-        filename = f"scite_abstracts{filename_suffix}.html"
+        filename = f"openalex_abstracts{filename_suffix}.html"
         plot.save(PROJECT_DIR / f"outputs/figures/{filename}")
         viz_save.save(
             plot,
-            f"scite_abstracts{filename_suffix}",
+            f"openalex_abstracts{filename_suffix}",
             PROJECT_DIR / "outputs/figures",
             save_png=True,
         )
 
 
-if __name__ == "__main__":
-    scite_abstracts = get_scite_df_w_embeddings()
+def run_pipeline(
+    config: Annotated[Optional[Path], typer.Option()] = None,
+):
+    df = get_openalex_df_w_embeddings()
 
-    docs = scite_abstracts["title_abstract"].to_list()
-    embeddings = scite_abstracts["embeddings"].apply(pd.Series).values
+    if "cited_by_count" in df.columns:
+        df = df.rename(columns={"cited_by_count": "total_cites"})
+
+    docs = df["title_abstract"].to_list()
+    embeddings = df["embeddings"].apply(pd.Series).values
 
     topic_model = get_topic_model()
 
@@ -153,11 +179,11 @@ if __name__ == "__main__":
 
     topics = get_topics()
 
-    df_vis = create_df_for_viz(embeddings, topic_model, topics, docs, seed=SEED)
-
-    df_vis = df_vis.merge(
-        scite_abstracts, left_on="doc", right_on="title_abstract", how="left"
+    df_vis = create_df_for_viz(
+        embeddings, topic_model, topics, docs, seed=config["seed"]
     )
+
+    df_vis = df_vis.merge(df, left_on="doc", right_on="title_abstract", how="left")
 
     df_vis = df_vis.merge(
         cluster_summaries, left_on="topic", right_on="topic", how="left"
@@ -165,6 +191,49 @@ if __name__ == "__main__":
 
     df_vis["topic_name"].fillna("NA", inplace=True)
 
-    create_chart(df_vis, scale_by_citations=False, filename_suffix="")
+    # Drop nested columns
+    df_vis = df_vis.drop(
+        columns=[
+            "ids",
+            "apc_list",
+            "apc_paid",
+            "cited_by_percentile_year",
+            "biblio",
+            "primary_topic",
+            "topics",
+            "keywords",
+            "concepts",
+            "mesh",
+            "locations",
+            "best_oa_location",
+            "primary_location",
+            "open_access",
+            "authorships",
+            "sustainable_development_goals",
+            "grants",
+            "datasets",
+            "versions",
+            "counts_by_year",
+        ]
+    )
 
-    create_chart(df_vis, scale_by_citations=True, filename_suffix="_citations")
+    save_to_s3(
+        S3_BUCKET,
+        df_vis,
+        f"{config['rq_prefix']}/{config['oa_abstracts_pipeline']['path_vis_data']}",
+    )
+
+    create_chart(
+        df_vis, scale_by_citations=False, filename_suffix="", add_topic_legend=True
+    )
+
+    create_chart(
+        df_vis,
+        scale_by_citations=True,
+        filename_suffix="_citations",
+        add_topic_legend=True,
+    )
+
+
+if __name__ == "__main__":
+    run_pipeline()

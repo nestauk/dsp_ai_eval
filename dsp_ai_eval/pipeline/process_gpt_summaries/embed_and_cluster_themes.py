@@ -1,23 +1,23 @@
-import numpy as np
-import pandas as pd
-import pickle
 from sentence_transformers import SentenceTransformer
 
 from dsp_ai_eval import PROJECT_DIR, logging, config, S3_BUCKET
 from dsp_ai_eval.utils.clustering_utils import create_new_topic_model
 from dsp_ai_eval.getters.gpt import get_gpt_themes_cleaned
-from dsp_ai_eval.getters.utils import save_to_s3, upload_file_to_s3, copy_folder_to_s3
+from dsp_ai_eval.getters.utils import save_to_s3, copy_folder_to_s3
 
 model = SentenceTransformer(config["embedding_model"])
 SEED = config["seed"]
 
-GPT_THEMES_EMBEDDINGS_OUTPATH = config["gpt_themes_pipeline"][
-    "path_cleaned_data_w_embeddings"
-]
-TOPICS_OUTPATH = config["gpt_themes_pipeline"]["path_topics"]
-PROBS_OUTPATH = config["gpt_themes_pipeline"]["path_probs"]
+rq_prefix: str = config["rq_prefix"]
+GPT_THEMES_EMBEDDINGS_OUTPATH = (
+    f'{rq_prefix}/{config["gpt_themes_pipeline"]["path_cleaned_data_w_embeddings"]}'
+)
+TOPICS_OUTPATH = f'{rq_prefix}/{config["gpt_themes_pipeline"]["path_topics"]}'
+PROBS_OUTPATH = f'{rq_prefix}/{config["gpt_themes_pipeline"]["path_probs"]}'
 MODEL_OUTPATH = config["gpt_themes_pipeline"]["dir_topic_model"]
-REPRESENTATIVE_DOCS_OUTPATH = config["gpt_themes_pipeline"]["path_repr_docs"]
+REPRESENTATIVE_DOCS_OUTPATH = (
+    f'{rq_prefix}/{config["gpt_themes_pipeline"]["path_repr_docs"]}'
+)
 
 N_TOPICS = config["gpt_themes_pipeline"]["n_topics"]
 HDBSCAN_MIN_CLUSTER_SIZE = config["gpt_themes_pipeline"]["hdsbscan_min_cluster_size"]
@@ -71,7 +71,9 @@ if __name__ == "__main__":
         save_embedding_model=model,
     )
 
-    copy_folder_to_s3(PROJECT_DIR / MODEL_OUTPATH, S3_BUCKET, MODEL_OUTPATH)
+    copy_folder_to_s3(
+        PROJECT_DIR / MODEL_OUTPATH, S3_BUCKET, f"{rq_prefix}/{MODEL_OUTPATH}"
+    )
 
     # Save the representative documents
     logging.info("Saving representative documents...")

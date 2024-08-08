@@ -24,4 +24,5 @@ setup(
     description="A rapid exploration of evaluating outputs from generative AI tools",
     author="Nesta",
     license="proprietary",
+    entry_points={"console_scripts": ["dsp_ai_eval=dsp_ai_eval.cli:app"]},
 )

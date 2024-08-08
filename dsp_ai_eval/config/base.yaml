@@ -1,5 +1,35 @@
 embedding_model: all-miniLM-L6-v2
 seed: 42
+rq_prefix: <project_name>/<research_question_number>
+RQ: <Research question>
+
+oa_abstracts_pipeline:
+  path_raw_data: inputs/openalex/data/works_raw.parquet
+  path_filtered_data: inputs/openalex/data/works_filtered.parquet
+  path_bm25_filtered_data: inputs/openalex/data/works_bm25_filtered.parquet
+  path_cleaned_data_w_embeddings: inputs/openalex/data/works_cleaned_w_embeddings.parquet
+  hdsbscan_min_cluster_size: 30
+  tfidf_ngram_min: 1
+  tfidf_ngram_max: 3
+  dir_topic_model: outputs/models/openalex/bertopic_abstracts_model
+  path_probs: outputs/openalex/data/bertopic_abstracts_model_probs.npy
+  path_topics: outputs/openalex/data/bertopic_abstracts_model_topics.pkl
+  path_repr_docs: outputs/openalex/data/bertopic_abstracts_representative_docs.pkl
+  path_summaries: outputs/openalex/data/abstracts_cluster_summaries.json
+  path_summaries_cleaned: outputs/openalex/data/abstracts_cluster_summaries_cleaned.parquet
+  path_vis_data: outputs/openalex/data/visualization_data.parquet
+  cluster_colours: tableau20
+
+oa_reclustering_pipeline:
+  zeroshot_min_similarity: 0.85
+  min_topic_size: 5
+  dir_topic_model: outputs/models/reclustering/bertopic_abstracts_model
+  path_probs: outputs/reclustering/data/bertopic_abstracts_model_probs.npy
+  path_topics: outputs/reclustering/data/bertopic_abstracts_model_topics.pkl
+  path_repr_docs: outputs/reclustering/data/bertopic_abstracts_representative_docs.pkl
+  path_summaries: outputs/reclustering/data/abstracts_cluster_summaries.json
+  path_summaries_cleaned: outputs/reclustering/data/abstracts_cluster_summaries_cleaned.parquet
+  path_vis_data: outputs/reclustering/data/visualization_data.parquet
 
 gpt_themes_pipeline:
   path_raw_data: inputs/data/gpt/gpt_themes_repeats.jsonl
@@ -36,5 +66,5 @@ abstracts_pipeline:
   cluster_colours: tableau20
 
 summarization_pipeline:
-  gpt_model: gpt-4
+  gpt_model: gpt-4-turbo
   gpt_temp: 0.4

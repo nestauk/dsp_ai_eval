@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from scipy.spatial import ConvexHull
-from sentence_transformers import SentenceTransformer
 
 from nesta_ds_utils.viz.altair import saving as viz_save
 
@@ -18,8 +17,6 @@ from dsp_ai_eval.getters.gpt import (
     get_cluster_summaries_cleaned,
 )
 from dsp_ai_eval.utils.clustering_utils import create_df_for_viz
-
-model = SentenceTransformer(config["embedding_model"])
 
 SEED = config["seed"]
 
@@ -184,7 +181,7 @@ if __name__ == "__main__":
 
     topics = get_topics()
     probs = get_probs()
-    representative_docs = get_representative_docs()
+    # representative_docs = get_representative_docs() # Not used
 
     df_vis = create_df_for_viz(embeddings, topic_model, topics, docs, seed=SEED)
 

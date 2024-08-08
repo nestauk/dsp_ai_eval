@@ -23,9 +23,6 @@ pyarrow
 langfuse
 einops==0.8.0
 pyalex==0.14
-metaflow
 more_itertools==10.3.0
 langchain_community==0.2.5
 rank_bm25==0.2.2
-typer
-questionary

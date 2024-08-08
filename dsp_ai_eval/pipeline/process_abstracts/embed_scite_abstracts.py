@@ -1,21 +1,26 @@
 import numpy as np
 import pandas as pd
 from sentence_transformers import SentenceTransformer
+from typing import Union
 
-from dsp_ai_eval import PROJECT_DIR, logging, config, S3_BUCKET
+from dsp_ai_eval import logging, config, S3_BUCKET
 from dsp_ai_eval.utils import text_cleaning as tc
 from dsp_ai_eval.getters.utils import save_to_s3
 from dsp_ai_eval.getters.scite import get_abstracts
 
-model = SentenceTransformer(config["embedding_model"])
+model = SentenceTransformer(
+    config["embedding_model"], trust_remote_code=True, truncate_dim=384
+)
 
 OUT_PATH = config["abstracts_pipeline"]["path_cleaned_data_w_embeddings"]
+rq_prefix = config["rq_prefix"]
+S3_KEY = f"{rq_prefix}/{OUT_PATH}"
 
 CITATION_THRESHOLD = config["abstracts_pipeline"]["citation_threshold"]
 N_MOST_RELEVANT_PAPERS = config["abstracts_pipeline"]["n_most_relevant_papers"]
 
 
-def first_non_nan(series):
+def first_non_nan(series: pd.Series) -> Union[pd.Series, np.nan]:
     return series.dropna().iloc[0] if not series.dropna().empty else np.nan
 
 
@@ -78,7 +83,7 @@ if __name__ == "__main__":
     )
 
     # Get rid of abstracts with very few citations, unless scite listed it as one of the core citations
-    scite_abstracts = scite_abstracts[
+    scite_abstracts: pd.DataFrame = scite_abstracts[
         (scite_abstracts["total_cites"] >= CITATION_THRESHOLD)
         | (scite_abstracts["category"] == "main")
     ]
@@ -90,7 +95,7 @@ if __name__ == "__main__":
         scite_abstracts["title_abstract"].tolist(), show_progress_bar=True
     )
 
-    vectors_as_list = [list(vec) for vec in scite_embeddings]
+    vectors_as_list = [vec.tolist() for vec in scite_embeddings]
 
     # Add the embeddings as a column to the original dataframe
     scite_abstracts["embeddings"] = vectors_as_list
@@ -113,5 +118,5 @@ if __name__ == "__main__":
     ]
 
     # Save to parquet
-    save_to_s3(S3_BUCKET, scite_abstracts, OUT_PATH)
+    save_to_s3(S3_BUCKET, scite_abstracts, S3_KEY)
     # scite_abstracts.to_parquet(OUT_PATH)

@@ -4,14 +4,13 @@ from sentence_transformers import SentenceTransformer
 
 from dsp_ai_eval import S3_BUCKET, PROJECT_DIR, config, logging
 from dsp_ai_eval.getters.utils import (
-    load_s3_jsonl,
     load_s3_data,
     download_directory_from_s3,
 )
 
 N_MOST_RELEVANT_PAPERS = config["abstracts_pipeline"]["n_most_relevant_papers"]
 
-EMBEDDING_MODEL = SentenceTransformer(config["embedding_model"])
+rq_prefix: str = config["rq_prefix"]
 
 
 def read_scite_abstracts(
@@ -53,57 +52,76 @@ def read_scite_abstracts(
 
 def get_abstracts(n_abstracts=N_MOST_RELEVANT_PAPERS):
     scite_main_abstracts = read_scite_abstracts(
-        config["abstracts_pipeline"]["path_scite_core_references"], "main", n_abstracts
+        f"{rq_prefix}/" + config["abstracts_pipeline"]["path_scite_core_references"],
+        "main",
+        n_abstracts,
     )
     scite_wider_abstracts1 = read_scite_abstracts(
-        config["abstracts_pipeline"]["path_scite_search1"], "wider", n_abstracts
+        f"{rq_prefix}/" + config["abstracts_pipeline"]["path_scite_search1"],
+        "wider",
+        n_abstracts,
     )
     scite_wider_abstracts2 = read_scite_abstracts(
-        config["abstracts_pipeline"]["path_scite_search2"], "wider", n_abstracts
+        f"{rq_prefix}/" + config["abstracts_pipeline"]["path_scite_search2"],
+        "wider",
+        n_abstracts,
+    )
+    scite_wider_abstracts3 = read_scite_abstracts(
+        f"{rq_prefix}/" + config["abstracts_pipeline"]["path_scite_search3"],
+        "wider",
+        n_abstracts,
     )
 
     scite_abstracts = pd.concat(
-        [scite_main_abstracts, scite_wider_abstracts1, scite_wider_abstracts2]
+        [
+            scite_main_abstracts,
+            scite_wider_abstracts1,
+            scite_wider_abstracts2,
+            scite_wider_abstracts3,
+        ]
     )
 
     return scite_abstracts
 
 
 def get_scite_df_w_embeddings():
-    return load_s3_data(
-        S3_BUCKET, config["abstracts_pipeline"]["path_cleaned_data_w_embeddings"]
-    )
+    filename = config["abstracts_pipeline"]["path_cleaned_data_w_embeddings"]
+    return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
 
 
 def get_topic_model():
-    download_directory_from_s3(
+    dir_name = config["abstracts_pipeline"]["dir_topic_model"]
+    dl_path = download_directory_from_s3(
         S3_BUCKET,
-        config["abstracts_pipeline"]["dir_topic_model"],
-        PROJECT_DIR / config["abstracts_pipeline"]["dir_topic_model"],
+        f"{rq_prefix}/{dir_name}",
+        PROJECT_DIR / dir_name,
     )
     return BERTopic.load(
-        PROJECT_DIR / config["abstracts_pipeline"]["dir_topic_model"],
-        embedding_model=EMBEDDING_MODEL,
+        dl_path,
+        embedding_model=config["embedding_model"],
     )
 
 
 def get_topics():
-    return load_s3_data(S3_BUCKET, config["abstracts_pipeline"]["path_topics"])
+    filemame = config["abstracts_pipeline"]["path_topics"]
+    return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filemame}")
 
 
 def get_probs():
-    return load_s3_data(S3_BUCKET, config["abstracts_pipeline"]["path_probs"])
+    filename = config["abstracts_pipeline"]["path_probs"]
+    return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
 
 
 def get_representative_docs():
-    return load_s3_data(S3_BUCKET, config["abstracts_pipeline"]["path_repr_docs"])
+    filename = config["abstracts_pipeline"]["path_repr_docs"]
+    return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
 
 
 def get_cluster_summaries():
-    return load_s3_data(S3_BUCKET, config["abstracts_pipeline"]["path_summaries"])
+    filename = config["abstracts_pipeline"]["path_summaries"]
+    return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
 
 
 def get_cluster_summaries_clean():
-    return load_s3_data(
-        S3_BUCKET, config["abstracts_pipeline"]["path_summaries_cleaned"]
-    )
+    filename = config["abstracts_pipeline"]["path_summaries_cleaned"]
+    return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
