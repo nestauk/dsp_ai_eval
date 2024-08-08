@@ -8,10 +8,14 @@ from dsp_ai_eval.getters.utils import save_to_s3, copy_folder_to_s3
 
 EMBEDDING_MODEL = SentenceTransformer(config["embedding_model"])
 
-TOPICS_OUTPATH = config["abstracts_pipeline"]["path_topics"]
-PROBS_OUTPATH = config["abstracts_pipeline"]["path_probs"]
+rq_prefix = config["rq_prefix"]
+
+TOPICS_OUTPATH = f'{rq_prefix}/{config["abstracts_pipeline"]["path_topics"]}'
+PROBS_OUTPATH = f'{rq_prefix}/{config["abstracts_pipeline"]["path_probs"]}'
 MODEL_OUTPATH = config["abstracts_pipeline"]["dir_topic_model"]
-REPRESENTATIVE_DOCS_OUTPATH = config["abstracts_pipeline"]["path_repr_docs"]
+REPRESENTATIVE_DOCS_OUTPATH = (
+    f'{rq_prefix}/{config["abstracts_pipeline"]["path_repr_docs"]}'
+)
 SEED = config["seed"]
 HDBSCAN_MIN_CLUSTER_SIZE = config["abstracts_pipeline"]["hdsbscan_min_cluster_size"]
 TFIDF_NGRAM_MIN = config["abstracts_pipeline"]["tfidf_ngram_min"]
@@ -51,7 +55,9 @@ if __name__ == "__main__":
         save_ctfidf=True,
         save_embedding_model=EMBEDDING_MODEL,
     )
-    copy_folder_to_s3(PROJECT_DIR / MODEL_OUTPATH, S3_BUCKET, MODEL_OUTPATH)
+    copy_folder_to_s3(
+        PROJECT_DIR / MODEL_OUTPATH, S3_BUCKET, f"{rq_prefix}/{MODEL_OUTPATH}"
+    )
 
     # Save the representative documents
     logging.info("Saving representative documents...")

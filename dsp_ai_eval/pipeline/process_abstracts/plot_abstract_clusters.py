@@ -1,9 +1,5 @@
 import altair as alt
-from bertopic import BERTopic
-import json
-import numpy as np
 import pandas as pd
-from sentence_transformers import SentenceTransformer
 
 from nesta_ds_utils.viz.altair import saving as viz_save
 
@@ -12,16 +8,12 @@ from dsp_ai_eval.utils.clustering_utils import create_df_for_viz
 from dsp_ai_eval.getters.scite import (
     get_scite_df_w_embeddings,
     get_topic_model,
-    get_probs,
-    get_representative_docs,
     get_topics,
     get_cluster_summaries_clean,
 )
 
 # Increase the maximum number of rows Altair will process
 alt.data_transformers.disable_max_rows()
-
-embedding_model = SentenceTransformer(config["embedding_model"])
 
 SEED = config["seed"]
 
@@ -160,8 +152,6 @@ if __name__ == "__main__":
     cluster_summaries = get_cluster_summaries_clean()
 
     topics = get_topics()
-    probs = get_probs()
-    representative_docs = get_representative_docs()
 
     df_vis = create_df_for_viz(embeddings, topic_model, topics, docs, seed=SEED)
 
