@@ -12,12 +12,13 @@ from pathlib import Path
 import pickle
 import shutil
 import srsly
-from typing import Optional, List, Dict
+from typing import Optional, Union, Any, Dict, List
 import yaml
+from numpy.typing import NDArray
+from numpy import float64
+from rank_bm25 import BM25Okapi
 
-from dsp_ai_eval import logger, S3_BUCKET
-
-s3 = boto3.resource("s3")
+from dsp_ai_eval import logger
 
 
 class CustomJsonEncoder(json.JSONEncoder):
@@ -145,6 +146,7 @@ def load_s3_data(bucket_name: str, file_name: str):
     Returns:
         Loaded data.
     """
+    s3 = boto3.resource("s3")
     obj = s3.Object(bucket_name, file_name)
     if fnmatch(file_name, "*.jsonl.gz"):
         with gzip.GzipFile(fileobj=obj.get()["Body"]) as file:
@@ -164,7 +166,9 @@ def load_s3_data(bucket_name: str, file_name: str):
     elif fnmatch(file_name, "*.csv"):
         return pd.read_csv("s3://" + bucket_name + "/" + file_name)
     elif fnmatch(file_name, "*.parquet"):
-        return pd.read_parquet("s3://" + bucket_name + "/" + file_name)
+        return pd.read_parquet(
+            "s3://" + bucket_name + "/" + file_name, engine="pyarrow"
+        )
     elif fnmatch(file_name, "*.pkl") or fnmatch(file_name, "*.pickle"):
         with obj.get()["Body"] as f:
             return pickle.load(f)
@@ -186,14 +190,14 @@ def save_to_s3(bucket_name: str, output_var, output_file_dir: str):
         output_var (_type_): Output variable to save.
         output_file_dir (str): Path to save the file to.
     """
-
+    s3 = boto3.resource("s3")
     obj = s3.Object(bucket_name, output_file_dir)
 
     if fnmatch(output_file_dir, "*.csv"):
         output_var.to_csv("s3://" + bucket_name + "/" + output_file_dir, index=False)
     elif fnmatch(output_file_dir, "*.parquet"):
         output_var.to_parquet(
-            "s3://" + bucket_name + "/" + output_file_dir, index=False
+            "s3://" + bucket_name + "/" + output_file_dir, index=False, engine="pyarrow"
         )
     elif fnmatch(output_file_dir, "*.pkl") or fnmatch(output_file_dir, "*.pickle"):
         obj.put(Body=pickle.dumps(output_var))
@@ -218,6 +222,7 @@ def save_to_s3(bucket_name: str, output_var, output_file_dir: str):
 
 
 def copy_folder_to_s3(local_path, bucket_name, destination):
+    s3 = boto3.resource("s3")
     bucket = s3.Bucket(bucket_name)
 
     local_path = Path(local_path)  # Ensure path is a Path object
@@ -232,6 +237,7 @@ def copy_folder_to_s3(local_path, bucket_name, destination):
 
 
 def download_directory_from_s3(bucket_name, s3_folder, local_dir):
+    s3 = boto3.resource("s3")
     bucket = s3.Bucket(bucket_name)
     local_dir = Path(local_dir)
 
@@ -248,3 +254,13 @@ def download_directory_from_s3(bucket_name, s3_folder, local_dir):
         target = local_dir / Path(obj.key).relative_to(s3_folder)
         target.parent.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
         bucket.download_file(obj.key, str(target))
+
+    return local_dir
+
+
+def get_bm25_scores(query: str, corpus: List[str]) -> Union[NDArray[float64], Any]:
+    tokenized_query = query.split(" ")
+    tokenized_corpus = [doc.split(" ") for doc in corpus]
+    bm25 = BM25Okapi(tokenized_corpus)
+    doc_scores = bm25.get_scores(tokenized_query)
+    return doc_scores
