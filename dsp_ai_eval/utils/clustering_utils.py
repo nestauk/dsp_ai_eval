@@ -23,6 +23,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import CountVectorizer
 import time
 from umap import UMAP
+from dotenv import load_dotenv
 
 from dsp_ai_eval import PROJECT_DIR, logging, config
 from dsp_ai_eval.utils import utils
