@@ -127,3 +127,6 @@ target/
 
 # NPM
 node_modules/
+
+# data
+data/

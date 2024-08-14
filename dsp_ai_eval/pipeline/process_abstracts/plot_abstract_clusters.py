@@ -132,11 +132,11 @@ def create_chart(
     # Save the chart
     if save:
         filename = f"scite_abstracts{filename_suffix}.html"
-        plot.save(PROJECT_DIR / f"outputs/figures/{filename}")
+        plot.save(PROJECT_DIR / f"outputs/RQ3.2(a)/figures/{filename}")
         viz_save.save(
             plot,
             f"scite_abstracts{filename_suffix}",
-            PROJECT_DIR / "outputs/figures",
+            PROJECT_DIR / "outputs/RQ3.2(a)/figures",
             save_png=True,
         )
 

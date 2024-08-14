@@ -24,6 +24,32 @@ def first_non_nan(series: pd.Series) -> Union[pd.Series, np.nan]:
     return series.dropna().iloc[0] if not series.dropna().empty else np.nan
 
 
+def create_agg_dict(df):
+    """
+    Create an aggregation dictionary for a dataframe.
+
+    This function creates an aggregation dictionary for a dataframe,
+    where each existing column in the dataframe is associated with the
+    'first_non_nan' function. This dictionary can be used in aggregation
+    operations, such as 'groupby.agg()'.
+
+    Parameters:
+    df (pandas.DataFrame): The dataframe for which to create the aggregation dictionary.
+
+    Returns:
+    dict: The aggregation dictionary.
+    """
+
+    # Create a list of all existing columns in the dataframe
+    existing_columns = [col for col in df.columns]
+
+    # Create an aggregation dictionary where each column is associated with the 'first_non_nan' function
+    agg_dict = {col: first_non_nan for col in existing_columns}
+
+    # Return the aggregation dictionary
+    return agg_dict
+
+
 if __name__ == "__main__":
     scite_abstracts = get_abstracts(n_abstracts=N_MOST_RELEVANT_PAPERS)
     logging.info(f"Total number of abstracts: {len(scite_abstracts)}")
@@ -38,28 +64,8 @@ if __name__ == "__main__":
         f"Number of abstracts remaining after dropping duplicates: {len(scite_abstracts)}"
     )
 
-    agg_dict = {
-        "date": first_non_nan,
-        "title": first_non_nan,
-        "doi": first_non_nan,
-        "authors": first_non_nan,
-        "journal": first_non_nan,
-        "short_journal": first_non_nan,
-        "volume": first_non_nan,
-        "year": first_non_nan,
-        "publisher": first_non_nan,
-        "issue": first_non_nan,
-        "page": first_non_nan,
-        "abstract": first_non_nan,
-        "category": first_non_nan,
-        "pmid": first_non_nan,
-        "issns": first_non_nan,
-        "supporting_cites": first_non_nan,
-        "contrasting_cites": first_non_nan,
-        "mentioning_cites": first_non_nan,
-        "total_cites": first_non_nan,
-        "scite_report_link": first_non_nan,
-    }
+    # Create an aggregation dictionary for the dataframe
+    agg_dict = create_agg_dict(scite_abstracts)
 
     # Group by 'doi' and aggregate
     scite_abstracts = (

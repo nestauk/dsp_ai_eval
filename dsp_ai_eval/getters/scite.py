@@ -61,24 +61,12 @@ def get_abstracts(n_abstracts=N_MOST_RELEVANT_PAPERS):
         "wider",
         n_abstracts,
     )
-    scite_wider_abstracts2 = read_scite_abstracts(
-        f"{rq_prefix}/" + config["abstracts_pipeline"]["path_scite_search2"],
-        "wider",
-        n_abstracts,
-    )
-    scite_wider_abstracts3 = read_scite_abstracts(
-        f"{rq_prefix}/" + config["abstracts_pipeline"]["path_scite_search3"],
-        "wider",
-        n_abstracts,
-    )
+    # scite_wider_abstracts2 = read_scite_abstracts(
+    #     config["abstracts_pipeline"]["path_scite_search2"], "wider", n_abstracts
+    # )
 
     scite_abstracts = pd.concat(
-        [
-            scite_main_abstracts,
-            scite_wider_abstracts1,
-            scite_wider_abstracts2,
-            scite_wider_abstracts3,
-        ]
+        [scite_main_abstracts, scite_wider_abstracts1]  # , scite_wider_abstracts2
     )
 
     return scite_abstracts

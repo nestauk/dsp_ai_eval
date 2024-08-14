@@ -17,12 +17,23 @@ from langfuse.callback import CallbackHandler
 
 import re
 import pandas as pd
-from tqdm import tqdm
-from time import sleep
-from datetime import date
-from typing import List
+import re
+import spacy
+from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import CountVectorizer
+import time
+from umap import UMAP
 
-from dsp_ai_eval import logger, config
+from dsp_ai_eval import PROJECT_DIR, logging, config
+from dsp_ai_eval.utils import utils
+
+from langfuse.callback import CallbackHandler
+
+langfuse_handler = CallbackHandler()
+
+load_dotenv()
+
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 GPT_MODEL = config["summarization_pipeline"]["gpt_model"]
 
@@ -64,7 +75,13 @@ def create_new_topic_model(
     calculate_probabilities=False,
     embedding_model=config["embedding_model"],
 ):
-    logger.info("Initialising BERTopic model...")
+    # Check if 'en_core_web_sm' is installed, if not, download it
+    try:
+        spacy.load("en_core_web_sm")
+    except OSError:
+        print("Model 'en_core_web_sm' not found. Downloading...")
+        os.system("python -m spacy download en_core_web_sm")
+    sentence_model = SentenceTransformer(embedding_model)
 
     umap_model = UMAP(
         n_neighbors=15,
@@ -250,11 +267,11 @@ def get_summaries(
         )
 
         # Generate the summary
-        output = (llm_chain | parser).invoke(
+        summary_result = llm_chain.invoke(
             {"texts": texts, "keywords": keywords},
             config={"callbacks": [langfuse_handler]},
         )
-        # output = parser.invoke(summary_result, config={"callbacks": [langfuse_handler]})
+        output = parser.invoke(summary_result, config={"callbacks": [langfuse_handler]})
 
         summaries[topic] = {
             "Name:": output.name,

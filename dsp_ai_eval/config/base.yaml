@@ -32,38 +32,47 @@ oa_reclustering_pipeline:
   path_vis_data: outputs/reclustering/data/visualization_data.parquet
 
 gpt_themes_pipeline:
-  path_raw_data: inputs/data/gpt/gpt_themes_repeats.jsonl
-  path_cleaned_data: inputs/data/gpt/gpt_themes_repeats_cleaned.csv
-  path_cleaned_data_w_embeddings: inputs/data/gpt/gpt_themes_repeats_cleaned_embeddings.csv
+  research_question: What health and disease information relating to cancer do the public have high interest in?
+  path_raw_data: early_health_auto_lit_analysis/RQ1/early_health_auto_lit_analysis/RQ1/inputs/data/gpt/gpt_themes_repeats.jsonl
+  path_cleaned_data: early_health_auto_lit_analysis/RQ1/inputs/data/gpt/gpt_themes_repeats_cleaned.csv
+  path_cleaned_data_w_embeddings: early_health_auto_lit_analysis/RQ1/inputs/data/gpt/gpt_themes_repeats_cleaned_embeddings.csv
   hdsbscan_min_cluster_size: 20
   n_topics: 12
   tfidf_ngram_min: 1
   tfidf_ngram_max: 3
-  dir_topic_model: outputs/models/bertopic_gpt_themes_model
-  path_probs: outputs/data/bertopic_gpt_themes_model_probs.npy
-  path_topics: outputs/data/bertopic_gpt_themes_model_topics.pkl
-  path_repr_docs: outputs/data/bertopic_gpt_themes_representative_docs.pkl
-  path_summaries: outputs/data/gpt_theme_cluster_summaries.json
-  path_summaries_cleaned: outputs/data/gpt_theme_cluster_summaries_cleaned.csv
+  dir_topic_model: early_health_auto_lit_analysis/RQ1/outputs/models/bertopic_gpt_themes_model
+  path_probs: early_health_auto_lit_analysis/RQ1/outputs/data/bertopic_gpt_themes_model_probs.npy
+  path_topics: early_health_auto_lit_analysis/RQ1/outputs/data/bertopic_gpt_themes_model_topics.pkl
+  path_repr_docs: early_health_auto_lit_analysis/RQ1/outputs/data/bertopic_gpt_themes_representative_docs.pkl
+  path_summaries: early_health_auto_lit_analysis/RQ1/outputs/data/gpt_theme_cluster_summaries.json
+  path_summaries_cleaned: early_health_auto_lit_analysis/RQ1/outputs/data/gpt_theme_cluster_summaries_cleaned.csv
   cluster_colours: tableau20
 
 abstracts_pipeline:
-  path_scite_core_references: inputs/data/scite/How_does_technology_diffusion_impact_UK_growth_and_productivity_3F.csv
-  path_scite_search1: inputs/data/scite/technology diffusion impact on uk growth-2024-02-23.csv
-  path_scite_search2: inputs/data/scite/technology diffusion impact on uk productivity-2024-02-23.csv
+  path_scite_core_references: early_health_auto_lit_analysis/RQ3.2(a)/inputs/data/scite/reducing anxiety in patients with chronic diseases through test result communication-2024-05-24.csv
+  path_scite_search1: early_health_auto_lit_analysis/RQ3.2(a)/inputs/data/scite/communication of health test results for patients with chronic diseases-2024-05-24.csv
+  # path_scite_search2: early_health_auto_lit_analysis/RQ4.1(a)/inputs/data/scite/communicating risk information for cancer-2024-05-23.csv
   citation_threshold: 5 # remove papers with fewer than N citations
-  n_most_relevant_papers: 1000
-  path_cleaned_data_w_embeddings: inputs/data/embeddings/scite_embeddings.parquet
+  n_most_relevant_papers: 1500
+  path_cleaned_data_w_embeddings: early_health_auto_lit_analysis/RQ3.2(a)/inputs/data/embeddings/scite_embeddings.parquet
   hdsbscan_min_cluster_size: 30
   tfidf_ngram_min: 1
   tfidf_ngram_max: 3
-  dir_topic_model: outputs/models/bertopic_abstracts_model
-  path_probs: outputs/data/bertopic_abstracts_model_probs.npy
-  path_topics: outputs/data/bertopic_abstracts_model_topics.pkl
-  path_repr_docs: outputs/data/bertopic_abstracts_representative_docs.pkl
-  path_summaries: outputs/data/abstracts_cluster_summaries.json
-  path_summaries_cleaned: outputs/data/abstracts_cluster_summaries_cleaned.csv
+  dir_topic_model: early_health_auto_lit_analysis/RQ3.2(a)/outputs/models/bertopic_abstracts_model
+  path_probs: early_health_auto_lit_analysis/RQ3.2(a)/outputs/data/bertopic_abstracts_model_probs.npy
+  path_topics: early_health_auto_lit_analysis/RQ3.2(a)/outputs/data/bertopic_abstracts_model_topics.pkl
+  path_repr_docs: early_health_auto_lit_analysis/RQ3.2(a)/outputs/data/bertopic_abstracts_representative_docs.pkl
+  path_summaries: early_health_auto_lit_analysis/RQ3.2(a)/outputs/data/abstracts_cluster_summaries.json
+  path_summaries_cleaned: early_health_auto_lit_analysis/RQ3.2(a)/outputs/data/abstracts_cluster_summaries_cleaned.csv
   cluster_colours: tableau20
+  recluster_dir_topic_model: early_health_auto_lit_analysis/RQ4.1(b)/recluster_price/outputs/models/bertopic_abstracts_model
+  recluster_path_probs: early_health_auto_lit_analysis/RQ4.1(b)/recluster_price/outputs/data/bertopic_abstracts_model_probs.npy
+  recluster_path_topics: early_health_auto_lit_analysis/RQ4.1(b)/recluster_price/outputs/data/bertopic_abstracts_model_topics.pkl
+  recluster_path_repr_docs: early_health_auto_lit_analysis/RQ4.1(b)/recluster_price/outputs/data/bertopic_abstracts_representative_docs.pkl
+  recluster_path_summaries: early_health_auto_lit_analysis/RQ4.1(b)/recluster_price/outputs/data/abstracts_cluster_summaries.json
+  recluster_path_summaries_cleaned: early_health_auto_lit_analysis/RQ4.1(b)/recluster_price/outputs/data/abstracts_cluster_summaries_cleaned.csv
+  recluster_path_cleaned_data_w_embeddings: early_health_auto_lit_analysis/RQ4.1(b)/recluster_price/inputs/data/embeddings/scite_embeddings.parquet
+  topics_to_recluster: [1]
 
 summarization_pipeline:
   gpt_model: gpt-4-turbo

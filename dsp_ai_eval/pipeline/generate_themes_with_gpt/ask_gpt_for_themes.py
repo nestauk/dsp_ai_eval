@@ -28,12 +28,12 @@ langfuse_handler = CallbackHandler(
 
 GPT_MODEL = "gpt-3.5-turbo"
 TEMPS = [0, 0.25, 0.5, 1]
-RQ = config["gpt_themes_pipeline"]["RQ"]
+RQ = config["gpt_themes_pipeline"]["research_question"]
 SYSTEM_MESSAGE = "You are a helpful research assistant. Given a research question, you provide a summary of the key topics in academic research on that topic."
 N_SAMPLES = 50
 
 # output
-FILENAME = "inputs/data/gpt/gpt_themes_repeats.jsonl"
+FILENAME = "early_health_auto_lit_analysis/RQ1/inputs/data/gpt/gpt_themes_repeats.jsonl"
 OUT_FILE = PROJECT_DIR / FILENAME
 rq_prefix: str = config["rq_prefix"]
 
