@@ -1,7 +1,7 @@
 embedding_model: all-miniLM-L6-v2
 seed: 42
-rq_prefix: <project_name>/<research_question_number>
-RQ: <Research question>
+rq_prefix: andromeda
+RQ: How to identify misinformation?
 
 oa_abstracts_pipeline:
   path_raw_data: inputs/openalex/data/works_raw.parquet
