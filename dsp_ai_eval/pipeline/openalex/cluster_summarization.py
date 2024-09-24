@@ -17,16 +17,21 @@ def run_pipeline(
 
     SUMMARIES_OUTPATH = config["oa_abstracts_pipeline"]["path_summaries"]
     rq_prefix = config["rq_prefix"]
+    pipeline_name = "abstracts_pipeline"
 
     df = get_openalex_df_w_embeddings()
 
     docs = df["title_abstract"].to_list()
 
     df, top_docs_per_topic = get_top_docs_per_topic(
-        abstracts_df=df, topics=get_topics(), docs=docs, probs=get_probs(), n_docs=5
+        abstracts_df=df,
+        topics=get_topics(pipeline=pipeline_name),
+        docs=docs,
+        probs=get_probs(pipeline=pipeline_name),
+        n_docs=5,
     )
 
-    topic_model = get_topic_model()
+    topic_model = get_topic_model(pipeline=pipeline_name)
 
     summaries = get_summaries(
         topic_model,

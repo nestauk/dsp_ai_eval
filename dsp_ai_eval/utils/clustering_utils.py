@@ -20,7 +20,7 @@ import pandas as pd
 from tqdm import tqdm
 from time import sleep
 from datetime import date
-from typing import List
+from typing import Any, List
 
 from dsp_ai_eval import logger, config
 
@@ -45,14 +45,6 @@ def get_openai_model(
         client, model=model, exponential_backoff=True, chat=True, prompt=prompt
     )
     return openai_model
-
-
-def get_anthropic_model(
-    model=config["summarization_pipeline"]["gpt_model"],
-):
-    from bertopic.representation import LangChain
-
-    pass
 
 
 def create_new_topic_model(
@@ -104,7 +96,7 @@ def create_new_topic_model(
     openai_model = get_openai_model()
 
     # All representation models
-    representation_model = {
+    representation_model: Any = {
         "KeyBERT": keybert_model,
         "OpenAI": openai_model,  # Uncomment if you will use OpenAI
         "MMR": mmr_model,
@@ -217,7 +209,7 @@ def get_summaries(
         keywords = ", ".join(keyword_list)
 
         llm = ChatOpenAI(
-            model_name=model_name,
+            model=model_name,
             temperature=temperature,
         )
 

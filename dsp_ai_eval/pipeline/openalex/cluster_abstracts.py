@@ -1,17 +1,21 @@
-from dsp_ai_eval import PROJECT_DIR, S3_BUCKET, logger, config
+from dsp_ai_eval import PROJECT_DIR, S3_BUCKET, logger
 from dsp_ai_eval.utils.clustering_utils import create_new_topic_model
 from dsp_ai_eval.getters.openalex import get_openalex_df_w_embeddings
 from dsp_ai_eval.getters.utils import save_to_s3, copy_folder_to_s3
+from dsp_ai_eval.utils import openalex_config
 
 from typing import Any, Dict
 
+# all configs loaded here
+config = openalex_config.get_all_configs()
+
 
 def run_pipeline(
-    config: Dict[Any, Any] = config,
+    config: Dict[str, Any] = config,
 ):
     import pandas as pd
 
-    rq_prefix = config["rq_prefix"]
+    rq_prefix = config["oa_abstracts_pipeline"]["rq_prefix"]
     TOPICS_OUTPATH = config["oa_abstracts_pipeline"]["path_topics"]
     PROBS_OUTPATH = config["oa_abstracts_pipeline"]["path_probs"]
     MODEL_OUTPATH = config["oa_abstracts_pipeline"]["dir_topic_model"]
@@ -32,7 +36,7 @@ def run_pipeline(
     topic_model = create_new_topic_model(
         hdbscan_min_cluster_size=HDBSCAN_MIN_CLUSTER_SIZE,
         tfidf_ngram_range=(TFIDF_NGRAM_MIN, TFIDF_NGRAM_MAX),
-        seed=config["seed"],
+        seed=config["oa_abstracts_pipeline"]["seed"],
         calculate_probabilities=True,
     )
 
@@ -52,7 +56,7 @@ def run_pipeline(
         PROJECT_DIR / MODEL_OUTPATH,
         serialization="pytorch",
         save_ctfidf=True,
-        save_embedding_model=config["embedding_model"],
+        save_embedding_model=config["oa_abstracts_pipeline"]["embedding_model"],
     )
     copy_folder_to_s3(
         PROJECT_DIR / MODEL_OUTPATH, S3_BUCKET, f"{rq_prefix}/{MODEL_OUTPATH}"

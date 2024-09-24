@@ -1,15 +1,19 @@
 from bertopic import BERTopic
 import pandas as pd
 
-from dsp_ai_eval import S3_BUCKET, PROJECT_DIR, config, logger
+from typing import List
+
+from dsp_ai_eval import S3_BUCKET, PROJECT_DIR, logger
 from dsp_ai_eval.getters.utils import (
     load_s3_data,
     download_directory_from_s3,
 )
+from dsp_ai_eval.utils import openalex_config
 
-rq_prefix: str = config["rq_prefix"]
+# all configs loaded here
+config = openalex_config.get_all_configs()
 
-# TODO: modify getters to default to a certain config, but allow str input for path
+rq_prefix: str = config["oa_abstracts_pipeline"]["rq_prefix"]
 
 
 def get_openalex_works(
@@ -42,12 +46,15 @@ def get_openalex_works(
 
 
 def get_works_raw() -> pd.DataFrame:
-    df: pd.DataFrame = load_s3_data(
+    df = load_s3_data(
         S3_BUCKET,
         f"{rq_prefix}/{config['oa_abstracts_pipeline']['path_raw_data']}",
     )
-    logger.info(f"Total number of works: {len(df)}")
-    return df
+    if isinstance(df, pd.DataFrame):
+        logger.info(f"Total number of works: {len(df)}")
+        return df
+    else:
+        raise ValueError("Error loading raw works data, configured path is invalid")
 
 
 def get_works_filtered():
@@ -66,50 +73,102 @@ def get_works_bm25_filtered():
 
 def get_openalex_df_w_embeddings():
     filename = config["oa_abstracts_pipeline"]["path_cleaned_data_w_embeddings"]
-    return load_s3_data(
-        S3_BUCKET,
-        f"{rq_prefix}/{filename}",
-    )
+
+    data = load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
+
+    if isinstance(data, pd.DataFrame):
+        return data
+    else:
+        return pd.DataFrame(data)
 
 
-def get_topic_model():
-    dir_name = config["oa_abstracts_pipeline"]["dir_topic_model"]
+def get_topic_model(pipeline: str) -> BERTopic:
+
+    if pipeline == "openalex_abstracts":
+        dir_name = config["oa_abstracts_pipeline"]["dir_topic_model"]
+    elif pipeline == "reclustering":
+        dir_name = config["reclustering_pipeline"]["dir_topic_model"]
     dl_path = download_directory_from_s3(
         S3_BUCKET,
         f"{rq_prefix}/{dir_name}",
         PROJECT_DIR / dir_name,
     )
     return BERTopic.load(
-        dl_path,
-        embedding_model=config["embedding_model"],
+        dl_path.as_posix(),
+        embedding_model=config["oa_abstracts_pipeline"]["embedding_model"],
     )
 
 
-def get_topics():
-    filemame = config["oa_abstracts_pipeline"]["path_topics"]
+def get_topics(pipeline: str) -> List[str]:
+
+    if pipeline == "openalex_abstracts":
+        filemame = config["oa_abstracts_pipeline"]["path_topics"]
+    elif pipeline == "reclustering":
+        filemame = config["reclustering_pipeline"]["path_topics"]
+
     return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filemame}")
 
 
-def get_probs():
-    filename = config["oa_abstracts_pipeline"]["path_probs"]
+def get_probs(pipeline: str):
+
+    if pipeline == "openalex_abstracts":
+        filename = config["oa_abstracts_pipeline"]["path_probs"]
+    elif pipeline == "reclustering":
+        filename = config["reclustering_pipeline"]["path_probs"]
+
     return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
 
 
-def get_representative_docs():
-    filename = config["oa_abstracts_pipeline"]["path_repr_docs"]
+def get_representative_docs(pipeline: str):
+
+    if pipeline == "openalex_abstracts":
+        filename = config["oa_abstracts_pipeline"]["path_repr_docs"]
+    elif pipeline == "reclustering":
+        filename = config["reclustering_pipeline"]["path_repr_docs"]
+
     return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
 
 
-def get_cluster_summaries():
-    filename = config["oa_abstracts_pipeline"]["path_summaries"]
-    return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
+def get_cluster_summaries(pipeline: str):
+
+    if pipeline == "openalex_abstracts":
+        filename = config["oa_abstracts_pipeline"]["path_summaries"]
+    elif pipeline == "reclustering":
+        filename = config["reclustering_pipeline"]["path_summaries"]
+
+    data = load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
+
+    if isinstance(data, pd.DataFrame):
+        return data
+    else:
+        return pd.DataFrame(data)
 
 
-def get_cluster_summaries_clean():
-    filename = config["oa_abstracts_pipeline"]["path_summaries_cleaned"]
-    return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
+def get_cluster_summaries_clean(pipeline: str):
+
+    if pipeline == "openalex_abstracts":
+        filename = config["oa_abstracts_pipeline"]["path_summaries_cleaned"]
+    elif pipeline == "reclustering":
+        filename = config["reclustering_pipeline"]["path_summaries_cleaned"]
+
+    data = load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
+
+    if isinstance(data, pd.DataFrame):
+        return data
+    else:
+        return pd.DataFrame(data)
 
 
-def get_vis_data():
-    filename = config["oa_abstracts_pipeline"]["path_vis_data"]
-    return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
+def get_vis_data(pipeline: str) -> pd.DataFrame:
+
+    if pipeline == "openalex_abstracts":
+        filename = config["oa_abstracts_pipeline"]["path_vis_data"]
+    elif pipeline == "reclustering":
+        filename = config["reclustering_pipeline"]["path_vis_data"]
+
+    data = load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
+
+    if isinstance(data, pd.DataFrame):
+        return data
+    else:
+        return pd.DataFrame(data)

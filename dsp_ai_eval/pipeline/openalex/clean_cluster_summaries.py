@@ -14,7 +14,7 @@ def run_pipeline(
     ]
     rq_prefix = config["rq_prefix"]
 
-    cluster_summaries = get_cluster_summaries()
+    cluster_summaries = get_cluster_summaries("abstracts_pipeline")
 
     cluster_summaries_cleaned = clean_cluster_summaries(cluster_summaries)
 

@@ -163,7 +163,7 @@ def create_chart(
 
 
 def run_pipeline(
-    config: Annotated[Optional[Path], typer.Option()] = None,
+    config=config,
 ):
     df = get_openalex_df_w_embeddings()
 
