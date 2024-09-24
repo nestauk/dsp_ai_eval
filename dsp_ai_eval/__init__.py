@@ -3,7 +3,7 @@
 import logging
 import logging.config
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any, Dict
 
 import yaml
 
@@ -35,4 +35,4 @@ logger = logging.getLogger(__name__)
 
 # base/global config
 _base_config_path = Path(__file__).parent.resolve() / "config/base.yaml"
-config = get_yaml_config(_base_config_path)
+config: Dict[Any, Any] = get_yaml_config(_base_config_path)

@@ -4,9 +4,7 @@ from typing import Optional, Union, List
 from dsp_ai_eval import PROJECT_DIR, S3_BUCKET, logger, config
 
 
-def run_pipeline(
-    topic: int, keywords: List[str], config: Optional[Union[Path, str]] = None
-):
+def run_pipeline(topic: int, keywords: List[str], config=config):
     from dsp_ai_eval.utils.clustering_utils import (
         reclustering_model_from_topics,
         get_top_docs_per_topic,
@@ -22,7 +20,7 @@ def run_pipeline(
     import pandas as pd
 
     df = (
-        get_vis_data()
+        get_vis_data("openalex_abstracts")
         .query("Topic == @topic")
         .drop(
             columns=[

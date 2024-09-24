@@ -22,6 +22,46 @@ from pathlib import Path
 alt.data_transformers.disable_max_rows()
 
 
+def create_themes_barchart(
+    pipeline: str,
+    save: bool = True,
+    filename_suffix: str = "",
+) -> None:
+    topics_counts = (
+        get_topic_model(pipeline=pipeline)
+        .get_topic_info()[["Topic", "Count"]]
+        .query("Topic != -1")
+    )
+    topic_names = get_cluster_summaries_clean(pipeline=pipeline)[
+        ["topic_name", "topic"]
+    ]
+    barchart_df = topics_counts.merge(topic_names, left_on="Topic", right_on="topic")
+
+    hbarchart = (
+        alt.Chart(barchart_df)
+        .encode(
+            x=alt.X("Count:Q", title="Number of documents"),
+            y=alt.Y("topic_name:N", title="Themes"),
+            # TODO: modify topic_name text to be more readable (large font)
+            tooltip=["topic_name:N", "Count:Q"],
+        )
+        .mark_bar()
+    )
+
+    plot = hbarchart.properties(width=800, height=600).interactive()
+
+    # Save the chart
+    if save:
+        filename = f"{pipeline}_hbarchart_{filename_suffix}.html"
+        plot.save(PROJECT_DIR / f"outputs/figures/{filename}")
+        viz_save.save(
+            plot,
+            f"{pipeline}_hbarchart_{filename_suffix}",
+            PROJECT_DIR / "outputs/figures",
+            save_png=True,
+        )
+
+
 def map_citations_to_size(citations: int, quantile_values: dict) -> str:
     """
     Maps the number of citations to a size category based on quantile thresholds.
@@ -163,7 +203,7 @@ def create_chart(
 
 
 def run_pipeline(
-    config: Annotated[Optional[Path], typer.Option()] = None,
+    config=config,
 ):
     df = get_openalex_df_w_embeddings()
 

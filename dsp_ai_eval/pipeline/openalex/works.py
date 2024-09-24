@@ -1,23 +1,23 @@
-from dsp_ai_eval import config, S3_BUCKET
+from dsp_ai_eval import S3_BUCKET  # TODO: add S3 bucket to config, or use local path
 from dsp_ai_eval.getters.utils import save_to_s3
 from dsp_ai_eval.getters.openalex import get_openalex_works, get_works_raw
+from dsp_ai_eval.utils import openalex_config
 
 import typer
-from typing import Any, Dict, Optional
-from typing_extensions import Annotated
-from pathlib import Path
 
 app = typer.Typer()
 
-user = "solomon.yu@nesta.org.uk"  # use a separate config file
-RQ = config["RQ"]
-rq_prefix = config["rq_prefix"]
+# all configs loaded here
+config = openalex_config.get_all_configs()
+
+user = config["env_vars"]["OPENALEX_USER"]
+RQ = config["oa_abstracts_pipeline"]["research_question"]
+rq_prefix = config["oa_abstracts_pipeline"]["rq_prefix"]
 OUTPATH = config["oa_abstracts_pipeline"]["path_raw_data"]
 
 
 @app.command()
 def get(
-    config: Annotated[Optional[Path], typer.Option()] = None,
     user: str = user,
     research_question: str = RQ,
     min_cites: str = ">4",
@@ -43,7 +43,6 @@ def get(
 
 @app.command()
 def process(
-    config: Annotated[Optional[Path], typer.Option()] = None,
     openalex_rmin: int = 10,
     bm25_topk: int = 1000,
 ):
@@ -83,11 +82,22 @@ def process(
     min_cites_count(filtered)
 
 
+@app.command()
 def run_pipeline(
-    config: Annotated[Optional[Path], typer.Option()] = None,
+    user: str = user,
+    research_question: str = RQ,
+    min_cites: str = ">4",
+    n_works: int = 10000,
+    openalex_rmin: int = 10,
+    bm25_topk: int = 1000,
 ):
-    get(config=config)
-    process(config=config)
+    get(
+        user=user,
+        research_question=research_question,
+        min_cites=min_cites,
+        n_works=n_works,
+    )
+    process(openalex_rmin=openalex_rmin, bm25_topk=bm25_topk)
 
 
 if __name__ == "__main__":
