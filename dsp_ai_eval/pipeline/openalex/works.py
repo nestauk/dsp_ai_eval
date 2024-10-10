@@ -9,7 +9,7 @@ from pathlib import Path
 
 app = typer.Typer()
 
-user = "solomon.yu@nesta.org.uk"  # use a separate config file
+user = "henry.nurick@bi.team"  # use a separate config file
 RQ = config["RQ"]
 rq_prefix = config["rq_prefix"]
 OUTPATH = config["oa_abstracts_pipeline"]["path_raw_data"]
@@ -43,10 +43,12 @@ def get(
 
 @app.command()
 def process(
-    config: Annotated[Optional[Path], typer.Option()] = None,
+    config=config,
+    # config: Annotated[Optional[Path], typer.Option()] = None,
     openalex_rmin: int = 10,
     bm25_topk: int = 1000,
 ):
+    # config = eval(config)
     import pandas as pd
     from dsp_ai_eval.pipeline.openalex.utils import (
         filter_relevance_score,
@@ -83,8 +85,10 @@ def process(
     min_cites_count(filtered)
 
 
+@app.command()
 def run_pipeline(
-    config: Annotated[Optional[Path], typer.Option()] = None,
+    config=config,
+    # config: Annotated[Optional[Path], typer.Option()] = None,
 ):
     get(config=config)
     process(config=config)

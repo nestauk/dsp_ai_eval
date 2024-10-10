@@ -153,7 +153,7 @@ def create_chart(
     # Save the chart
     if save:
         filename = f"openalex_abstracts{filename_suffix}.html"
-        plot.save(PROJECT_DIR / f"outputs/figures/{filename}")
+        plot.save(PROJECT_DIR / f"outputs/figures/{filename}", format="html")
         viz_save.save(
             plot,
             f"openalex_abstracts{filename_suffix}",
@@ -222,7 +222,9 @@ def run_pipeline(
         df_vis,
         f"{config['rq_prefix']}/{config['oa_abstracts_pipeline']['path_vis_data']}",
     )
-
+    df_vis = df_vis[
+        ["topic", "topic_name", "total_cites", "doc", "x", "y"]
+    ]  # Select specific cols to avoid JSON error
     create_chart(
         df_vis, scale_by_citations=False, filename_suffix="", add_topic_legend=True
     )

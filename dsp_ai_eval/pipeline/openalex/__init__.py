@@ -15,7 +15,9 @@ app.add_typer(clustering.app, name="clustering")
 
 
 @app.command()
-def run_pipeline(config: Annotated[Optional[Path], typer.Option()] = None):
+def run_pipeline(config=config):
+    # config: Annotated[Optional[Path], typer.Option()] = None
+    config = eval(config)
 
     works.run_pipeline(config=config)
     clustering.run_pipeline(config=config)

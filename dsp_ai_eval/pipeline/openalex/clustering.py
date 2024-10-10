@@ -11,6 +11,7 @@ app = typer.Typer()
 
 @app.command()
 def cluster_abstracts(config: Annotated[Optional[Path], typer.Option()] = None):
+    # config = eval(config)
     from dsp_ai_eval.pipeline.openalex import cluster_abstracts
 
     cluster_abstracts.run_pipeline(config=config)
@@ -18,6 +19,7 @@ def cluster_abstracts(config: Annotated[Optional[Path], typer.Option()] = None):
 
 @app.command()
 def summarise_clusters(config: Annotated[Optional[Path], typer.Option()] = None):
+    # config = eval(config)
     from dsp_ai_eval.pipeline.openalex import cluster_summarization
     from dsp_ai_eval.pipeline.openalex import clean_cluster_summaries
 
@@ -27,6 +29,7 @@ def summarise_clusters(config: Annotated[Optional[Path], typer.Option()] = None)
 
 @app.command()
 def create_plots(config: Annotated[Optional[Path], typer.Option()] = None):
+    # config = eval(config)
     from dsp_ai_eval.pipeline.openalex import plot_abstract_clusters
 
     if config is None:
@@ -37,6 +40,7 @@ def create_plots(config: Annotated[Optional[Path], typer.Option()] = None):
 
 @app.command()
 def recluster(config: Annotated[Optional[Path], typer.Option()] = None):
+    # config = eval(config)
     import questionary
     from dsp_ai_eval.getters.openalex import get_cluster_summaries_clean
     from dsp_ai_eval.pipeline.openalex import reclustering
@@ -68,7 +72,11 @@ def recluster(config: Annotated[Optional[Path], typer.Option()] = None):
 
 
 @app.command()
-def run_pipeline(config: Annotated[Optional[Path], typer.Option()] = None):
+def run_pipeline(
+    config=base_config,
+    # config: Annotated[Optional[Path], typer.Option()] = None
+):
+    # config = eval(config)
     cluster_abstracts(config=config)
     summarise_clusters(config=config)
     create_plots(config=config)
