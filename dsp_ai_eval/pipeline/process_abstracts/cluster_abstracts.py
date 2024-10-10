@@ -10,8 +10,8 @@ EMBEDDING_MODEL = SentenceTransformer(config["embedding_model"])
 
 rq_prefix = config["rq_prefix"]
 
-TOPICS_OUTPATH = f'{rq_prefix}/{config["abstracts_pipeline"]["path_topics"]}'
-PROBS_OUTPATH = f'{rq_prefix}/{config["abstracts_pipeline"]["path_probs"]}'
+TOPICS_OUTPATH = f'{config["abstracts_pipeline"]["path_topics"]}'
+PROBS_OUTPATH = f'{config["abstracts_pipeline"]["path_probs"]}'
 MODEL_OUTPATH = config["abstracts_pipeline"]["dir_topic_model"]
 REPRESENTATIVE_DOCS_OUTPATH = (
     f'{rq_prefix}/{config["abstracts_pipeline"]["path_repr_docs"]}'

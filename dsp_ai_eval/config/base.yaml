@@ -1,7 +1,7 @@
 embedding_model: all-miniLM-L6-v2
 seed: 42
-rq_prefix: andromeda
-RQ: How to identify misinformation?
+rq_prefix: "GSK_test"
+RQ: Theoretical basis for behavioural boosts and behavioural boosting
 
 oa_abstracts_pipeline:
   path_raw_data: inputs/openalex/data/works_raw.parquet
@@ -49,29 +49,29 @@ gpt_themes_pipeline:
   cluster_colours: tableau20
 
 abstracts_pipeline:
-  path_scite_core_references: early_health_auto_lit_analysis/RQ3.2(a)/inputs/data/scite/reducing anxiety in patients with chronic diseases through test result communication-2024-05-24.csv
-  path_scite_search1: early_health_auto_lit_analysis/RQ3.2(a)/inputs/data/scite/communication of health test results for patients with chronic diseases-2024-05-24.csv
+  path_scite_core_references: GSK_vaccine_uptake/rosies_version/1.1/inputs/data/scite/behavioural barriers to adult vaccination uptake in the uk-2024-08-13.csv
+  path_scite_search1: GSK_vaccine_uptake/rosies_version/1.1/inputs/data/scite/social motivators for adult vaccination in the uk-2024-08-13.csv
   # path_scite_search2: early_health_auto_lit_analysis/RQ4.1(a)/inputs/data/scite/communicating risk information for cancer-2024-05-23.csv
   citation_threshold: 5 # remove papers with fewer than N citations
   n_most_relevant_papers: 1500
-  path_cleaned_data_w_embeddings: early_health_auto_lit_analysis/RQ3.2(a)/inputs/data/embeddings/scite_embeddings.parquet
+  path_cleaned_data_w_embeddings: GSK_vaccine_uptake/rosies_version/1.1/inputs/data/embeddings/scite_embeddings.parquet
   hdsbscan_min_cluster_size: 30
   tfidf_ngram_min: 1
   tfidf_ngram_max: 3
-  dir_topic_model: early_health_auto_lit_analysis/RQ3.2(a)/outputs/models/bertopic_abstracts_model
-  path_probs: early_health_auto_lit_analysis/RQ3.2(a)/outputs/data/bertopic_abstracts_model_probs.npy
-  path_topics: early_health_auto_lit_analysis/RQ3.2(a)/outputs/data/bertopic_abstracts_model_topics.pkl
-  path_repr_docs: early_health_auto_lit_analysis/RQ3.2(a)/outputs/data/bertopic_abstracts_representative_docs.pkl
-  path_summaries: early_health_auto_lit_analysis/RQ3.2(a)/outputs/data/abstracts_cluster_summaries.json
-  path_summaries_cleaned: early_health_auto_lit_analysis/RQ3.2(a)/outputs/data/abstracts_cluster_summaries_cleaned.csv
+  dir_topic_model: GSK_vaccine_uptake/rosies_version/1.1/outputs/models/bertopic_abstracts_model
+  path_probs: GSK_vaccine_uptake/rosies_version/1.1/outputs/data/bertopic_abstracts_model_probs.npy
+  path_topics: GSK_vaccine_uptake/rosies_version/1.1/outputs/data/bertopic_abstracts_model_topics.pkl
+  path_repr_docs: GSK_vaccine_uptake/rosies_version/1.1/outputs/data/bertopic_abstracts_representative_docs.pkl
+  path_summaries: GSK_vaccine_uptake/rosies_version/1.1/outputs/data/abstracts_cluster_summaries.json
+  path_summaries_cleaned: GSK_vaccine_uptake/rosies_version/1.1/outputs/data/abstracts_cluster_summaries_cleaned.csv
   cluster_colours: tableau20
-  recluster_dir_topic_model: early_health_auto_lit_analysis/RQ4.1(b)/recluster_price/outputs/models/bertopic_abstracts_model
-  recluster_path_probs: early_health_auto_lit_analysis/RQ4.1(b)/recluster_price/outputs/data/bertopic_abstracts_model_probs.npy
-  recluster_path_topics: early_health_auto_lit_analysis/RQ4.1(b)/recluster_price/outputs/data/bertopic_abstracts_model_topics.pkl
-  recluster_path_repr_docs: early_health_auto_lit_analysis/RQ4.1(b)/recluster_price/outputs/data/bertopic_abstracts_representative_docs.pkl
-  recluster_path_summaries: early_health_auto_lit_analysis/RQ4.1(b)/recluster_price/outputs/data/abstracts_cluster_summaries.json
-  recluster_path_summaries_cleaned: early_health_auto_lit_analysis/RQ4.1(b)/recluster_price/outputs/data/abstracts_cluster_summaries_cleaned.csv
-  recluster_path_cleaned_data_w_embeddings: early_health_auto_lit_analysis/RQ4.1(b)/recluster_price/inputs/data/embeddings/scite_embeddings.parquet
+  recluster_dir_topic_model: GSK_vaccine_uptake/rosies_version/1.1/recluster_price/outputs/models/bertopic_abstracts_model
+  recluster_path_probs: GSK_vaccine_uptake/rosies_version/1.1/recluster_price/outputs/data/bertopic_abstracts_model_probs.npy
+  recluster_path_topics: GSK_vaccine_uptake/rosies_version/1.1/recluster_price/outputs/data/bertopic_abstracts_model_topics.pkl
+  recluster_path_repr_docs: GSK_vaccine_uptake/rosies_version/1.1/recluster_price/outputs/data/bertopic_abstracts_representative_docs.pkl
+  recluster_path_summaries: GSK_vaccine_uptake/rosies_version/1.1/recluster_price/outputs/data/abstracts_cluster_summaries.json
+  recluster_path_summaries_cleaned: GSK_vaccine_uptake/rosies_version/1.1/recluster_price/outputs/data/abstracts_cluster_summaries_cleaned.csv
+  recluster_path_cleaned_data_w_embeddings: GSK_vaccine_uptake/rosies_version/1.1/recluster_price/inputs/data/embeddings/scite_embeddings.parquet
   topics_to_recluster: [1]
 
 summarization_pipeline:

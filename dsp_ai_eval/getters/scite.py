@@ -52,12 +52,12 @@ def read_scite_abstracts(
 
 def get_abstracts(n_abstracts=N_MOST_RELEVANT_PAPERS):
     scite_main_abstracts = read_scite_abstracts(
-        f"{rq_prefix}/" + config["abstracts_pipeline"]["path_scite_core_references"],
+        config["abstracts_pipeline"]["path_scite_core_references"],
         "main",
         n_abstracts,
     )
     scite_wider_abstracts1 = read_scite_abstracts(
-        f"{rq_prefix}/" + config["abstracts_pipeline"]["path_scite_search1"],
+        config["abstracts_pipeline"]["path_scite_search1"],
         "wider",
         n_abstracts,
     )
@@ -74,7 +74,7 @@ def get_abstracts(n_abstracts=N_MOST_RELEVANT_PAPERS):
 
 def get_scite_df_w_embeddings():
     filename = config["abstracts_pipeline"]["path_cleaned_data_w_embeddings"]
-    return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
+    return load_s3_data(S3_BUCKET, f"{filename}")
 
 
 def get_topic_model():
@@ -92,24 +92,24 @@ def get_topic_model():
 
 def get_topics():
     filemame = config["abstracts_pipeline"]["path_topics"]
-    return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filemame}")
+    return load_s3_data(S3_BUCKET, f"{filemame}")
 
 
 def get_probs():
     filename = config["abstracts_pipeline"]["path_probs"]
-    return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
+    return load_s3_data(S3_BUCKET, f"{filename}")
 
 
 def get_representative_docs():
     filename = config["abstracts_pipeline"]["path_repr_docs"]
-    return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
+    return load_s3_data(S3_BUCKET, f"{filename}")
 
 
 def get_cluster_summaries():
     filename = config["abstracts_pipeline"]["path_summaries"]
-    return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
+    return load_s3_data(S3_BUCKET, f"{filename}")
 
 
 def get_cluster_summaries_clean():
     filename = config["abstracts_pipeline"]["path_summaries_cleaned"]
-    return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
+    return load_s3_data(S3_BUCKET, f"{filename}")

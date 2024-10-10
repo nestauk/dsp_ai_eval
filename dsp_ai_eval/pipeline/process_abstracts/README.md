@@ -22,3 +22,10 @@ Note that the final step, `plot_abstract_clusters.py`, saves plots **locally** r
 4. `clean_cluster_summaries.py`: do some minor cleaning on the GPT-generated cluster summaries. (This is in a separate script from `cluster_summarization_pipeline.py` just so that if we want to modify the cleaning steps, we don't have to regenerate the summaries, as doing so comes with a cost.)
 
 5. `plot_abstract_clusters.py`: visualize the clusters that we have created!
+
+CHECKLIST
+
+- Update file paths in base.yaml
+- Update output path for figs in plot_abstract_clusters.py and add corresponding output file in finder
+- Update number of args in get_abstracts in scite.py, and in embed_scite_abstracts (?)
+- Put data from scite in S3

@@ -120,9 +120,15 @@ def create_chart(
             "y:Q", axis=alt.Axis(ticks=False, labels=False, title=None, grid=False)
         ),
         size=size_encode,
-        color=alt.Color("topic_name:N", legend=None).scale(
-            scheme=config["abstracts_pipeline"]["cluster_colours"]
-        ),
+        color=alt.Color(
+            "topic_name:N",
+            legend=alt.Legend(
+                title="Topic Names",
+                titleFontSize=12,
+                labelFontSize=12,
+                labelPadding=100,
+            ),
+        ).scale(scheme=config["abstracts_pipeline"]["cluster_colours"]),
         opacity=opacity_condition,
         tooltip=tooltip_fields,
     ).mark_circle()
@@ -132,11 +138,11 @@ def create_chart(
     # Save the chart
     if save:
         filename = f"scite_abstracts{filename_suffix}.html"
-        plot.save(PROJECT_DIR / f"outputs/RQ3.2(a)/figures/{filename}")
+        plot.save(PROJECT_DIR / f"outputs/GSK/1.1/figures/{filename}")
         viz_save.save(
             plot,
             f"scite_abstracts{filename_suffix}",
-            PROJECT_DIR / "outputs/RQ3.2(a)/figures",
+            PROJECT_DIR / "outputs/GSK/1.1/figures",
             save_png=True,
         )
 

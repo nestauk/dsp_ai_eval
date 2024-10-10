@@ -24,12 +24,17 @@ from sklearn.feature_extraction.text import CountVectorizer
 import time
 from umap import UMAP
 from dotenv import load_dotenv
-
+import os
+from typing import List
 from dsp_ai_eval import PROJECT_DIR, logging, config
 from dsp_ai_eval.utils import utils
+from tqdm import tqdm
+from datetime import date
+from time import sleep
 
 from langfuse.callback import CallbackHandler
 
+logger = logging.getLogger(__name__)
 langfuse_handler = CallbackHandler()
 
 load_dotenv()

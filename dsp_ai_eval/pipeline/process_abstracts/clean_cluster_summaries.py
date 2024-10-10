@@ -11,6 +11,4 @@ if __name__ == "__main__":
 
     cluster_summaries_cleaned = clean_cluster_summaries(cluster_summaries)
 
-    save_to_s3(
-        S3_BUCKET, cluster_summaries_cleaned, f"{rq_prefix}/{CLUSTER_SUMMARIES_OUTPATH}"
-    )
+    save_to_s3(S3_BUCKET, cluster_summaries_cleaned, f"{CLUSTER_SUMMARIES_OUTPATH}")

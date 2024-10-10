@@ -14,13 +14,13 @@ model = SentenceTransformer(
 
 OUT_PATH = config["abstracts_pipeline"]["path_cleaned_data_w_embeddings"]
 rq_prefix = config["rq_prefix"]
-S3_KEY = f"{rq_prefix}/{OUT_PATH}"
+S3_KEY = f"{OUT_PATH}"
 
 CITATION_THRESHOLD = config["abstracts_pipeline"]["citation_threshold"]
 N_MOST_RELEVANT_PAPERS = config["abstracts_pipeline"]["n_most_relevant_papers"]
 
 
-def first_non_nan(series: pd.Series) -> Union[pd.Series, np.nan]:
+def first_non_nan(series: pd.Series) -> Union[pd.Series, float]:
     return series.dropna().iloc[0] if not series.dropna().empty else np.nan
 
 

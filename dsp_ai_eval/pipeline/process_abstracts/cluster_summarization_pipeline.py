@@ -33,4 +33,4 @@ if __name__ == "__main__":
         text_col="title_abstract",
     )
 
-    save_to_s3(S3_BUCKET, summaries, f"{rq_prefix}/{SUMMARIES_OUTPATH}")
+    save_to_s3(S3_BUCKET, summaries, f"{SUMMARIES_OUTPATH}")
