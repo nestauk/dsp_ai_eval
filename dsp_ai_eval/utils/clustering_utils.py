@@ -22,13 +22,11 @@ from time import sleep
 from datetime import date
 from typing import Any, List
 
-from dsp_ai_eval import logger, config
-
-GPT_MODEL = config["summarization_pipeline"]["gpt_model"]
+from dsp_ai_eval import logger
 
 
 def get_openai_model(
-    model=config["summarization_pipeline"]["gpt_model"],
+    model: str = "gpt-4o-mini",
 ) -> OpenAI:
     from langfuse.openai import openai
 
@@ -52,15 +50,18 @@ def create_new_topic_model(
     tfidf_min_df=2,
     tfidf_max_df=0.9,
     tfidf_ngram_range=(1, 2),
-    seed=config["seed"],
+    seed=42,
     calculate_probabilities=False,
-    embedding_model=config["embedding_model"],
+    embedding_model="all-miniLM-L6-v2",
+    llm="gpt-4o-mini",
+    umap_n_neighbors=15,
+    umap_n_components=25,
 ):
     logger.info("Initialising BERTopic model...")
 
     umap_model = UMAP(
-        n_neighbors=15,
-        n_components=50,
+        n_neighbors=umap_n_neighbors,
+        n_components=umap_n_components,
         min_dist=0.0,
         metric="cosine",
         random_state=seed,
@@ -92,8 +93,8 @@ def create_new_topic_model(
     # MMR
     mmr_model = MaximalMarginalRelevance(diversity=0.3)
 
-    # GPT-3.5
-    openai_model = get_openai_model()
+    # GPT-4o-mini
+    openai_model = get_openai_model(model=llm)
 
     # All representation models
     representation_model: Any = {
@@ -191,8 +192,8 @@ def get_summaries(
     top_docs_per_topic,
     trace_name: str,
     text_col="answer_cleaned",
-    model_name=GPT_MODEL,
-    temperature=config["summarization_pipeline"]["gpt_temp"],
+    llm="gpt-4o-mini",
+    temperature=0.4,
 ):
     summary_info = topic_model.get_topic_info()
     # Filter out the noise cluster (on the assumption that it's not possible to get a helpful summary of this very sparse, noisy cluster)
@@ -208,8 +209,8 @@ def get_summaries(
         ]
         keywords = ", ".join(keyword_list)
 
-        llm = ChatOpenAI(
-            model=model_name,
+        openai_llm = ChatOpenAI(
+            model=llm,
             temperature=temperature,
         )
 
@@ -233,10 +234,10 @@ def get_summaries(
             partial_variables={"format_instructions": parser.get_format_instructions()},
         )
 
-        llm_chain = prompt | llm
+        llm_chain = prompt | openai_llm
 
         langfuse_handler = CallbackHandler(
-            user_id="ohid-maintaining-weightloss",
+            user_id="dsp_ai_eval",
             session_id=f"{date.today().isoformat()}",
             trace_name=trace_name,
         )
@@ -246,14 +247,13 @@ def get_summaries(
             {"texts": texts, "keywords": keywords},
             config={"callbacks": [langfuse_handler]},
         )
-        # output = parser.invoke(summary_result, config={"callbacks": [langfuse_handler]})
 
         summaries[topic] = {
             "Name:": output.name,
             "Description:": output.description,
             "Docs": text_list,
             "Keywords": keyword_list,
-            "Model": GPT_MODEL,
+            "Model": llm,
             "Temperature": temperature,
             "Prompt": summary_prompt,
         }
@@ -283,7 +283,7 @@ def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
     return df.rename(columns=new_columns)
 
 
-def clean_cluster_summaries(cluster_summaries):
+def clean_cluster_summaries(cluster_summaries: pd.DataFrame) -> pd.DataFrame:
     # Convert the nested dictionary into a list of dictionaries
     data = [v for _, v in cluster_summaries.items()]
 
@@ -314,17 +314,16 @@ def clean_cluster_summaries(cluster_summaries):
 
 def reclustering_model_from_topics(
     zeroshot_topic_list: List[str],
-    zeroshot_min_similarity: float = config["oa_reclustering_pipeline"][
-        "zeroshot_min_similarity"
-    ],
-    embedding_model=config["embedding_model"],
+    zeroshot_min_similarity: float = 0.85,
+    embedding_model="all-miniLM-L6-v2",
+    llm="gpt-4o-mini",
     calculate_probabilities=False,
-    seed=config["seed"],
+    seed=42,
     hdbscan_min_cluster_size=5,
     tfidf_min_df=2,
     tfidf_max_df=0.9,
     tfidf_ngram_range=(1, 2),
-    min_topic_size=config["oa_reclustering_pipeline"]["min_topic_size"],
+    min_topic_size=5,
 ):
 
     umap_model = UMAP(
@@ -357,7 +356,7 @@ def reclustering_model_from_topics(
     pos_model = PartOfSpeech("en_core_web_sm")
 
     # GPT-3.5
-    openai_model = get_openai_model()
+    openai_model = get_openai_model(model=llm)
 
     # All representation models
     representation_model = {

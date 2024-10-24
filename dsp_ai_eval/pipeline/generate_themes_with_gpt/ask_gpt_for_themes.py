@@ -21,7 +21,7 @@ from dsp_ai_eval.getters.utils import upload_file_to_s3
 from langfuse.callback import CallbackHandler
 
 langfuse_handler = CallbackHandler(
-    user_id="ohid-maintaining-weightloss",
+    user_id="dsp_ai_eval",
     session_id=f"{date.today().isoformat()}",
     trace_name="gpt-themes-repeats",
 )

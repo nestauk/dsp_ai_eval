@@ -332,7 +332,9 @@ def read_abstracts_config(
 ) -> Dict[str, Any]:
     # TODO: add pydantic schema validation for abstracts config
     current_abstracts_config = (
-        abstracts_config_path if current else config_base_path / "abstracts_base.json"
+        config_base_path / abstracts_config_path
+        if current
+        else config_base_path / "abstracts_base.json"
     )
 
     with open(current_abstracts_config, "r") as f:

@@ -1,19 +1,14 @@
 from bertopic import BERTopic
 import pandas as pd
 
-from typing import List
 
-from dsp_ai_eval import S3_BUCKET, PROJECT_DIR, logger
+from dsp_ai_eval import S3_BUCKET, PROJECT_DIR, logger, config
 from dsp_ai_eval.getters.utils import (
     load_s3_data,
     download_directory_from_s3,
 )
-from dsp_ai_eval.utils import openalex_config
 
-# all configs loaded here
-config = openalex_config.get_all_configs()
-
-rq_prefix: str = config["oa_abstracts_pipeline"]["rq_prefix"]
+rq_prefix: str = config["rq_prefix"]
 
 
 def get_openalex_works(
@@ -95,18 +90,18 @@ def get_topic_model(pipeline: str) -> BERTopic:
     )
     return BERTopic.load(
         dl_path.as_posix(),
-        embedding_model=config["oa_abstracts_pipeline"]["embedding_model"],
+        embedding_model=config["embedding_model"],
     )
 
 
-def get_topics(pipeline: str) -> List[str]:
+def get_topics(pipeline: str):
 
     if pipeline == "openalex_abstracts":
-        filemame = config["oa_abstracts_pipeline"]["path_topics"]
+        filename = config["oa_abstracts_pipeline"]["path_topics"]
     elif pipeline == "reclustering":
-        filemame = config["reclustering_pipeline"]["path_topics"]
+        filename = config["reclustering_pipeline"]["path_topics"]
 
-    return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filemame}")
+    return load_s3_data(S3_BUCKET, f"{rq_prefix}/{filename}")
 
 
 def get_probs(pipeline: str):

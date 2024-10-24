@@ -1,4 +1,4 @@
-from dsp_ai_eval import config, S3_BUCKET
+from dsp_ai_eval import S3_BUCKET
 from dsp_ai_eval.utils.clustering_utils import get_top_docs_per_topic, get_summaries
 from dsp_ai_eval.getters.openalex import (
     get_openalex_df_w_embeddings,
@@ -8,16 +8,14 @@ from dsp_ai_eval.getters.openalex import (
 )
 from dsp_ai_eval.getters.utils import save_to_s3
 
-from typing import Any, Dict
-
 
 def run_pipeline(
-    config: Dict[Any, Any] = config,
+    rq_prefix: str,
+    path_summaries: str,
+    llm: str,
+    temperature: float,
 ):
-
-    SUMMARIES_OUTPATH = config["oa_abstracts_pipeline"]["path_summaries"]
-    rq_prefix = config["rq_prefix"]
-    pipeline_name = "abstracts_pipeline"
+    pipeline_name = "openalex_abstracts"
 
     df = get_openalex_df_w_embeddings()
 
@@ -38,10 +36,19 @@ def run_pipeline(
         top_docs_per_topic,
         trace_name="abstract_summary",
         text_col="title_abstract",
+        llm=llm,
+        temperature=temperature,
     )
 
-    save_to_s3(S3_BUCKET, summaries, f"{rq_prefix}/{SUMMARIES_OUTPATH}")
+    save_to_s3(S3_BUCKET, summaries, f"{rq_prefix}/{path_summaries}")
 
 
 if __name__ == "__main__":
-    run_pipeline()
+    from dsp_ai_eval import config
+
+    run_pipeline(
+        rq_prefix=config["rq_prefix"],
+        path_summaries=config["oa_abstracts_pipeline"]["path_summaries"],
+        llm=config["summarization_pipeline"]["gpt_model"],
+        temperature=config["summarization_pipeline"]["gpt_temp"],
+    )

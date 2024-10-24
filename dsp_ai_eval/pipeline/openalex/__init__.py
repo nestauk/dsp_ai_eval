@@ -1,17 +1,14 @@
 from dsp_ai_eval.pipeline.openalex import works
 from dsp_ai_eval.pipeline.openalex import clustering
 
-from dsp_ai_eval.utils import openalex_config
+from dsp_ai_eval import config
 
 import typer
 
 app = typer.Typer()
 
-# all configs loaded here
-config = openalex_config.get_all_configs()
-
-user = config["env_vars"]["OPENALEX_USER"]
-RQ = config["oa_abstracts_pipeline"]["research_question"]
+user = config["openalex_user"]
+RQ = config["RQ"]
 
 # add subcommands
 app.add_typer(works.app, name="works")

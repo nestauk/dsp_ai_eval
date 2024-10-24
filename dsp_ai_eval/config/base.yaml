@@ -1,7 +1,7 @@
 embedding_model: all-miniLM-L6-v2
 seed: 42
 rq_prefix: <project_name>/<research_question_number>
-RQ: <Research question>
+RQ: <your research question>
 openalex_user: <your email>
 OMP_NUM_THREADS: 1
 cluster_colours: tableau20
@@ -11,9 +11,11 @@ oa_abstracts_pipeline:
   path_filtered_data: inputs/openalex/data/works_filtered.parquet
   path_bm25_filtered_data: inputs/openalex/data/works_bm25_filtered.parquet
   path_cleaned_data_w_embeddings: inputs/openalex/data/works_cleaned_w_embeddings.parquet
-  hdsbscan_min_cluster_size: 30
+  hdbscan_min_cluster_size: 10
   tfidf_ngram_min: 1
   tfidf_ngram_max: 3
+  umap_n_neighbors: 15
+  umap_n_components: 50
   dir_topic_model: outputs/models/openalex/bertopic_abstracts_model
   path_probs: outputs/openalex/data/bertopic_abstracts_model_probs.npy
   path_topics: outputs/openalex/data/bertopic_abstracts_model_topics.pkl
@@ -69,5 +71,5 @@ abstracts_pipeline:
   cluster_colours: tableau20
 
 summarization_pipeline:
-  gpt_model: gpt-4-turbo
+  gpt_model: gpt-4o-mini
   gpt_temp: 0.4

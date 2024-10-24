@@ -3,7 +3,7 @@ import pandas as pd
 
 from nesta_ds_utils.viz.altair import saving as viz_save
 
-from dsp_ai_eval import PROJECT_DIR, S3_BUCKET, logger, config
+from dsp_ai_eval import PROJECT_DIR, S3_BUCKET, logger
 from dsp_ai_eval.utils.clustering_utils import create_df_for_viz
 from dsp_ai_eval.getters.utils import save_to_s3
 from dsp_ai_eval.getters.openalex import (
@@ -53,7 +53,7 @@ def create_themes_barchart(
     # Save the chart
     if save:
         filename = f"{pipeline}_hbarchart_{filename_suffix}.html"
-        plot.save(PROJECT_DIR / f"outputs/figures/{filename}")
+        plot.save(str(PROJECT_DIR / f"outputs/figures/{filename}"))
         viz_save.save(
             plot,
             f"{pipeline}_hbarchart_{filename_suffix}",
@@ -96,6 +96,7 @@ def create_chart(
     filename_suffix: str = "",
     add_topic_legend: bool = False,
     plot_na=False,
+    cluster_colours: str = "tableau20",
 ) -> None:
     """
     Generates and optionally saves a visualization chart based on citation data.
@@ -166,13 +167,11 @@ def create_chart(
             alt.Color("topic_name:N")
             .legend(orient="top-left", labelLimit=0)
             .title("Topics by Colour")
-            .scale(scheme=config["oa_abstracts_pipeline"]["cluster_colours"])
+            .scale(scheme=cluster_colours)
         )
     else:
         color_args = (
-            alt.Color("topic_name:N")
-            .legend(None)
-            .scale(scheme=config["oa_abstracts_pipeline"]["cluster_colours"])
+            alt.Color("topic_name:N").legend(None).scale(scheme=cluster_colours)
         )
 
     base = chart.encode(
@@ -193,7 +192,7 @@ def create_chart(
     # Save the chart
     if save:
         filename = f"openalex_abstracts{filename_suffix}.html"
-        plot.save(PROJECT_DIR / f"outputs/figures/{filename}")
+        plot.save(str(PROJECT_DIR / f"outputs/figures/{filename}"), format="html")
         viz_save.save(
             plot,
             f"openalex_abstracts{filename_suffix}",
@@ -203,8 +202,11 @@ def create_chart(
 
 
 def run_pipeline(
-    config=config,
+    rq_prefix: str,
+    path_vis_data: str,
+    seed: int,
 ):
+    pipeline_name = "openalex_abstracts"
     df = get_openalex_df_w_embeddings()
 
     if "cited_by_count" in df.columns:
@@ -213,14 +215,16 @@ def run_pipeline(
     docs = df["title_abstract"].to_list()
     embeddings = df["embeddings"].apply(pd.Series).values
 
-    topic_model = get_topic_model()
+    topic_model = get_topic_model(pipeline=pipeline_name)
 
-    cluster_summaries = get_cluster_summaries_clean()
+    cluster_summaries = get_cluster_summaries_clean(pipeline=pipeline_name).astype(
+        {"topic": int}
+    )
 
-    topics = get_topics()
+    topics = get_topics(pipeline=pipeline_name)
 
-    df_vis = create_df_for_viz(
-        embeddings, topic_model, topics, docs, seed=config["seed"]
+    df_vis = create_df_for_viz(embeddings, topic_model, topics, docs, seed=seed).astype(
+        {"topic": int}
     )
 
     df_vis = df_vis.merge(df, left_on="doc", right_on="title_abstract", how="left")
@@ -260,8 +264,12 @@ def run_pipeline(
     save_to_s3(
         S3_BUCKET,
         df_vis,
-        f"{config['rq_prefix']}/{config['oa_abstracts_pipeline']['path_vis_data']}",
+        f"{rq_prefix}/{path_vis_data}",
     )
+
+    df_vis = df_vis[
+        ["topic", "topic_name", "total_cites", "doc", "x", "y"]
+    ]  # Select specific cols to avoid JSON error
 
     create_chart(
         df_vis, scale_by_citations=False, filename_suffix="", add_topic_legend=True
@@ -276,4 +284,10 @@ def run_pipeline(
 
 
 if __name__ == "__main__":
-    run_pipeline()
+    from dsp_ai_eval import config
+
+    run_pipeline(
+        rq_prefix=config["rq_prefix"],
+        path_vis_data=config["oa_abstracts_pipeline"]["path_vis_data"],
+        seed=config["seed"],
+    )
