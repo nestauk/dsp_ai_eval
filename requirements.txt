@@ -5,7 +5,7 @@ langchain
 langchain_openai
 langchain_text_splitters
 matplotlib
-nesta_ds_utils[s3,viz,gis] @ git+https://github.com/nestauk/nesta_ds_utils.git
+nesta_ds_utils[s3,viz] @ git+https://github.com/nestauk/nesta_ds_utils.git
 networkx
 nltk
 numpy
