@@ -56,14 +56,14 @@ def clean_works(df: pd.DataFrame) -> pd.DataFrame:
     df = df.dropna(
         subset=[
             "doi",
-            "volume",
-            "issue",
-            "first_page",
-            "last_page",
-            "pmid",
-            "journal",
-            "publisher",
-            "issn_l",
+            # "volume",
+            # "issue",
+            # "first_page",
+            # "last_page",
+            # "pmid",
+            # "journal",
+            # "publisher",
+            # "issn_l",
         ]
     )
     logger.info(

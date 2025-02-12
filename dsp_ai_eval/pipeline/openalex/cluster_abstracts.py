@@ -17,7 +17,8 @@ def run_pipeline(
     embedding_model: str,
     llm: str,
     umap_n_neighbors=15,
-    umap_n_components=25,
+    umap_n_components=50,
+    reduce_noise=True,
 ):
     import pandas as pd
 
@@ -29,7 +30,7 @@ def run_pipeline(
 
     try:
         # Initialise model with desired hyperparameters
-        topic_model = create_new_topic_model(
+        topic_model, vectorizer_model, representation_model = create_new_topic_model(
             hdbscan_min_cluster_size=hdbscan_min_cluster_size,
             tfidf_ngram_range=(tfidf_ngram_min, tfidf_ngram_max),
             seed=seed,
@@ -45,7 +46,7 @@ def run_pipeline(
         topics, probs = topic_model.fit_transform(docs, embeddings)
     except TypeError as e:
         logger.error(f"Error: {e}")
-        topic_model = create_new_topic_model(
+        topic_model, vectorizer_model, representation_model = create_new_topic_model(
             hdbscan_min_cluster_size=hdbscan_min_cluster_size,
             tfidf_ngram_range=(tfidf_ngram_min, tfidf_ngram_max),
             seed=seed,
@@ -61,9 +62,25 @@ def run_pipeline(
         logger.info("Training BERTopic model...")
         topics, probs = topic_model.fit_transform(docs, embeddings)
 
+    if reduce_noise:
+        logger.info("Reducing noise in topics...")
+        new_topics = topic_model.reduce_outliers(
+            docs, topics, probabilities=probs, strategy="probabilities"
+        )
+
+        topic_model.update_topics(
+            docs,
+            topics=new_topics,
+            top_n_words=10,
+            n_gram_range=(tfidf_ngram_min, tfidf_ngram_max),
+            vectorizer_model=vectorizer_model,
+            ctfidf_model=None,
+            representation_model=representation_model,
+        )
+
     # Save the topics and probability arrays
     logger.info("Saving topics and probabilities...")
-    save_to_s3(S3_BUCKET, topics, f"{rq_prefix}/{path_topics}")
+    save_to_s3(S3_BUCKET, new_topics, f"{rq_prefix}/{path_topics}")
 
     save_to_s3(S3_BUCKET, probs, f"{rq_prefix}/{path_probs}")
 
@@ -102,4 +119,7 @@ if __name__ == "__main__":
         seed=config["seed"],
         embedding_model=config["embedding_model"],
         llm=config["summarization_pipeline"]["gpt_model"],
+        umap_n_neighbors=config["oa_abstracts_pipeline"]["umap_n_neighbors"],
+        umap_n_components=config["oa_abstracts_pipeline"]["umap_n_components"],
+        reduce_noise=config["oa_abstracts_pipeline"]["reduce_noise"],
     )
