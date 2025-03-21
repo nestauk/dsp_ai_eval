@@ -20,6 +20,7 @@ import pandas as pd
 from tqdm import tqdm
 from time import sleep
 from datetime import date
+import os
 from typing import Any, List
 
 from dsp_ai_eval import logger
@@ -30,7 +31,7 @@ def get_openai_model(
 ) -> OpenAI:
     from langfuse.openai import openai
 
-    client = openai.OpenAI()
+    client = openai.OpenAI(base_url=os.environ["OPENAI_API_BASE"])
     prompt = """
     I have a topic that contains the following documents:
     [DOCUMENTS]
@@ -117,7 +118,7 @@ def create_new_topic_model(
         calculate_probabilities=calculate_probabilities,
     )
 
-    return topic_model
+    return topic_model, vectorizer_model, representation_model
 
 
 def create_df_for_viz(

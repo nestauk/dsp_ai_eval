@@ -27,6 +27,7 @@ def cluster_abstracts():
         llm=config["summarization_pipeline"]["gpt_model"],
         umap_n_neighbors=config["oa_abstracts_pipeline"]["umap_n_neighbors"],
         umap_n_components=config["oa_abstracts_pipeline"]["umap_n_components"],
+        reduce_noise=config["oa_abstracts_pipeline"]["reduce_noise"],
     )
 
 

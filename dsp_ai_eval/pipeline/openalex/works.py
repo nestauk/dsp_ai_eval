@@ -13,6 +13,8 @@ user = config["openalex_user"]
 RQ = config["RQ"]
 rq_prefix = config["rq_prefix"]
 OUTPATH = config["oa_abstracts_pipeline"]["path_raw_data"]
+min_cites = config["oa_abstracts_pipeline"]["min_cites"]
+openalex_rmin = config["oa_abstracts_pipeline"]["openalex_rmin"]
 
 
 @app.command()
@@ -21,7 +23,7 @@ def get(
     path_raw_data: str = OUTPATH,
     user: str = user,
     research_question: str = RQ,
-    min_cites: str = ">4",
+    min_cites: str = min_cites,
     n_works: int = 10000,
 ):
     """Pipeline to get works from OpenAlex.
@@ -48,12 +50,16 @@ def get(
 
 @app.command()
 def process(
-    rq_prefix: str,
-    path_filtered_data: str,
-    path_bm25_filtered_data: str,
-    path_cleaned_data_w_embeddings: str,
-    s3_bucket: str,
-    openalex_rmin: int = 10,
+    rq_prefix: str = config["rq_prefix"],
+    path_filtered_data: str = config["oa_abstracts_pipeline"]["path_filtered_data"],
+    path_bm25_filtered_data: str = config["oa_abstracts_pipeline"][
+        "path_bm25_filtered_data"
+    ],
+    path_cleaned_data_w_embeddings: str = config["oa_abstracts_pipeline"][
+        "path_cleaned_data_w_embeddings"
+    ],
+    s3_bucket: str = S3_BUCKET,
+    openalex_rmin: int = openalex_rmin,
     bm25_topk: int = 1000,
 ):
     import pandas as pd
@@ -110,10 +116,10 @@ def run_pipeline(
     user: str = user,
     s3_bucket: str = S3_BUCKET,
     research_question: str = RQ,
-    min_cites: str = ">4",
-    n_works: int = 10000,
-    openalex_rmin: int = 10,
-    bm25_topk: int = 1000,
+    min_cites: str = min_cites,
+    n_works: int = 100000,
+    openalex_rmin: int = openalex_rmin,
+    bm25_topk: int = 100000,
 ):
     get(
         s3_bucket=s3_bucket,
