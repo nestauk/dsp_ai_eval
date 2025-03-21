@@ -1,4 +1,9 @@
 """
+Performs multiple OpenAlex searches using search terms defined in an input .csv file.
+Concatenates the results of all searches into a single output file.
+
+Note that no deduplication is done in this script.
+
 Usage:
 ```
 python dsp_ai_eval/analysis/racial_bias_org_change/extract_openalex.py --package-suffixes=.txt,.py,.yaml --datastore=s3 run
@@ -17,16 +22,17 @@ import pandas as pd
 from pathlib import Path
 import pyalex
 import re
-
-# from dsp_ai_eval import config, S3_BUCKET, logging, PROJECT_DIR
+from typing import Optional
 
 S3_BUCKET = "dsp-ai-eval"
 pyalex.config["email"] = "rosie.oxbury@nesta.org.uk"
 MIN_CITES = ">0"
-# RAW_DATA_PATH = "inputs/openalex/data/works_raw.parquet"
+SEARCH_FILE = "s3://dsp-ai-eval/racial_bias_org_change/rq2/inputs/rq1_rq2_search_terms - rq2_search_terms v2.csv"
 
 
 def format_string(input_string: str) -> str:
+    """Format search terms into strings that can be pasted into the API call"""
+
     def replace_spaces(match):
         return match.group(0).replace(" ", "+")
 
@@ -35,10 +41,23 @@ def format_string(input_string: str) -> str:
 
 
 def get_works(
-    search="[Learning+OR+training]+AND+[anti-racist]+AND+[organisation+OR+work+OR+workplace]",
-    citation_filter=None,
-):
+    search: str = "[Learning+OR+training]+AND+[anti-racist]+AND+[organisation+OR+work+OR+workplace]",
+    citation_filter: Optional[str] = None,
+) -> pd.DataFrame:
+    """
+    Query the OpenAlex Works API using a search string and optional citation filter,
+    returning a DataFrame of relevant results with titles and abstracts.
 
+    Args:
+        search (str): The query string for searching works. Defaults to a query about
+                      anti-racist learning or training in organisational/workplace contexts.
+        citation_filter (Optional[str]): A string expression used to filter results based on
+                      citation count (e.g., '>100', '10', '<=50'). If None, no citation filter is applied.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the resulting works, filtered to include only
+                      rows with both 'title' and 'abstract'.
+    """
     if citation_filter is not None:
         query = pyalex.Works().search(search).filter(cited_by_count=citation_filter)
     else:
@@ -75,9 +94,7 @@ class OpenAlexSearchFlow(FlowSpec):
 
         self.s3_bucket = S3_BUCKET
 
-        searches_list = pd.read_csv(
-            "s3://dsp-ai-eval/racial_bias_org_change/rq2/inputs/rq1_rq2_search_terms - rq2_search_terms v2.csv"
-        )["search"]
+        searches_list = pd.read_csv(SEARCH_FILE)["search"]
 
         search_terms = [format_string(x) for x in searches_list]
         self.searches = list(enumerate(search_terms))
@@ -123,46 +140,3 @@ class OpenAlexSearchFlow(FlowSpec):
 
 if __name__ == "__main__":
     OpenAlexSearchFlow()
-
-
-# if __name__ == "__main__":
-#     searches = pd.read_csv(
-#         PROJECT_DIR / "dsp_ai_eval/analysis/racial_bias_org_change/rq1_rq2_search_terms - rq2_search_terms.csv"
-#     )["search"]
-
-#     input_searches_formatted = [format_string(x) for x in searches]
-#     additional_terms_formatted = [format_string(x) for x in additional_terms]
-#     combined_searches = [
-#         f"{search}+AND+{term}"
-#         for search in input_searches_formatted
-#         for term in additional_terms_formatted
-#     ]  # not currently used
-
-#     outputs = {}
-
-#     total_len = 0
-
-#     chunk = 0
-#     for search in input_searches_formatted:
-#         temp_df = get_works(
-#             search=search, citation_filter=config["oa_abstracts_pipeline"]["min_cites"]
-#         )
-#         logging.info(f"Search: {search}, Number of results: {len(temp_df)}")
-#         total_len += len(temp_df)
-#         temp_df.to_parquet(
-#         f"s3://{S3_BUCKET}/racial_bias_org_change/rq2/inputs/openalex/data/raw_searches/works_raw_{chunk}.parquet")
-#         chunk += 1
-#         outputs[search] = temp_df
-
-#     logging.info(f"Total results: {total_len}")
-#     save_to_s3(S3_BUCKET, outputs, f"s3://{S3_BUCKET}/racial_bias_org_change/rq2/inputs/openalex/data/raw_searches/works_raw.json")
-
-
-#     combined_df = pd.concat(
-#         [df.assign(search_term=search_term) for search_term, df in outputs.items()],
-#         ignore_index=True,
-#     )
-
-#     combined_df.to_parquet(
-#         f"s3://{S3_BUCKET}/racial_bias_org_change/rq1/{config['oa_abstracts_pipeline']['path_raw_data']}"
-#     )
