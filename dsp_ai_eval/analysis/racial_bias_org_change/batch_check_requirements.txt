@@ -1,0 +1,5 @@
+pandas
+ipykernel
+boto3
+plac
+git+https://github.com/nestauk/discovery_utils.git@78-mission-radar-prototype#egg=discovery_utils

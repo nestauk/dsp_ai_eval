@@ -1,0 +1,10 @@
+pandas
+metaflow
+boto3
+toolz
+nltk
+sentence_transformers
+tiktoken
+pyarrow
+pyalex
+s3fs
